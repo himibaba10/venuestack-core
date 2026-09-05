@@ -18,6 +18,28 @@ define( 'VENUESTACK_CORE_VERSION', '0.1.0' );
 define( 'VENUESTACK_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'VENUESTACK_CORE_URL', plugin_dir_url( __FILE__ ) );
 
+require_once VENUESTACK_CORE_PATH . 'includes/post-types.php';
+require_once VENUESTACK_CORE_PATH . 'includes/taxonomies.php';
+require_once VENUESTACK_CORE_PATH . 'includes/meta.php';
+
+/**
+ * Flush rewrite rules once after CPT/taxonomy registration changes.
+ */
+function venuestack_core_activate(): void {
+	venuestack_core_register_post_types();
+	venuestack_core_register_taxonomies();
+	flush_rewrite_rules();
+}
+register_activation_hook( __FILE__, 'venuestack_core_activate' );
+
+/**
+ * Flush rewrite rules on deactivate.
+ */
+function venuestack_core_deactivate(): void {
+	flush_rewrite_rules();
+}
+register_deactivation_hook( __FILE__, 'venuestack_core_deactivate' );
+
 /**
  * Enqueue built editor/script assets when present.
  */
