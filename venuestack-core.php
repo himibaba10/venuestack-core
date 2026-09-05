@@ -23,7 +23,9 @@ require_once VENUESTACK_CORE_PATH . 'includes/taxonomies.php';
 require_once VENUESTACK_CORE_PATH . 'includes/meta.php';
 require_once VENUESTACK_CORE_PATH . 'includes/booking.php';
 require_once VENUESTACK_CORE_PATH . 'includes/pricing.php';
+require_once VENUESTACK_CORE_PATH . 'includes/woocommerce-order.php';
 require_once VENUESTACK_CORE_PATH . 'includes/rest-holds.php';
+require_once VENUESTACK_CORE_PATH . 'includes/rest-checkout.php';
 require_once VENUESTACK_CORE_PATH . 'includes/cron-holds.php';
 
 /**
