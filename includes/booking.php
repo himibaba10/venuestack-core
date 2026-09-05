@@ -1,0 +1,233 @@
+<?php
+/**
+ * Soft-hold booking helpers: UTC parsing, mutex, overlap, insert.
+ *
+ * @package VenuestackCore
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/** Soft-hold lifetime in seconds (read-time expiry window). */
+const VENUESTACK_HOLD_TTL = 15 * MINUTE_IN_SECONDS;
+
+/** Space mutex transient lifetime in seconds. */
+const VENUESTACK_MUTEX_TTL = 10;
+
+/**
+ * Transient key for a space booking mutex.
+ */
+function venuestack_core_space_mutex_key( int $space_id ): string {
+	return 'venuestack_space_lock_' . $space_id;
+}
+
+/**
+ * Try to acquire a short-lived mutex for a space.
+ */
+function venuestack_core_acquire_space_lock( int $space_id ): bool {
+	$key = venuestack_core_space_mutex_key( $space_id );
+
+	if ( false !== get_transient( $key ) ) {
+		return false;
+	}
+
+	set_transient( $key, 1, VENUESTACK_MUTEX_TTL );
+
+	return true;
+}
+
+/**
+ * Release the space mutex.
+ */
+function venuestack_core_release_space_lock( int $space_id ): void {
+	delete_transient( venuestack_core_space_mutex_key( $space_id ) );
+}
+
+/**
+ * Parse a datetime string to a UTC Unix timestamp.
+ *
+ * Timezone-aware strings (Z / ±offset) are respected.
+ * Naive strings use $timezone, or the site timezone when omitted.
+ *
+ * @param string      $datetime Datetime string.
+ * @param string|null $timezone IANA timezone for naive datetimes.
+ * @return int|\WP_Error
+ */
+function venuestack_core_parse_to_utc_timestamp( string $datetime, ?string $timezone = null ) {
+	$datetime = trim( $datetime );
+
+	if ( '' === $datetime ) {
+		return new WP_Error(
+			'venuestack_invalid_datetime',
+			__( 'Datetime is required.', 'venuestack-core' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	try {
+		if ( preg_match( '/(Z|[+-]\d{2}:?\d{2})$/', $datetime ) ) {
+			$dt = new DateTimeImmutable( $datetime );
+		} else {
+			$tz_string = $timezone ?: wp_timezone_string();
+			$tz        = new DateTimeZone( $tz_string );
+			$dt        = new DateTimeImmutable( $datetime, $tz );
+		}
+
+		return $dt->setTimezone( new DateTimeZone( 'UTC' ) )->getTimestamp();
+	} catch ( Exception $e ) {
+		return new WP_Error(
+			'venuestack_invalid_datetime',
+			__( 'Could not parse datetime.', 'venuestack-core' ),
+			array( 'status' => 400 )
+		);
+	}
+}
+
+/**
+ * Whether a published venue_space exists.
+ */
+function venuestack_core_space_exists( int $space_id ): bool {
+	$post = get_post( $space_id );
+
+	return $post instanceof WP_Post
+		&& 'venue_space' === $post->post_type
+		&& 'publish' === $post->post_status;
+}
+
+/**
+ * Whether the range overlaps an active booking for the space.
+ *
+ * Confirmed bookings always conflict. Holds conflict only when
+ * post_date_gmt is within the last VENUESTACK_HOLD_TTL seconds.
+ * Cancelled (and other) statuses are ignored.
+ */
+function venuestack_core_has_booking_overlap( int $space_id, int $start_utc, int $end_utc ): bool {
+	global $wpdb;
+
+	$hold_cutoff = gmdate( 'Y-m-d H:i:s', time() - VENUESTACK_HOLD_TTL );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$found = $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT p.ID
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->postmeta} space_m
+				ON ( p.ID = space_m.post_id AND space_m.meta_key = 'space_id' AND space_m.meta_value = %s )
+			INNER JOIN {$wpdb->postmeta} start_m
+				ON ( p.ID = start_m.post_id AND start_m.meta_key = 'start_datetime' )
+			INNER JOIN {$wpdb->postmeta} end_m
+				ON ( p.ID = end_m.post_id AND end_m.meta_key = 'end_datetime' )
+			INNER JOIN {$wpdb->postmeta} status_m
+				ON ( p.ID = status_m.post_id AND status_m.meta_key = 'status' )
+			WHERE p.post_type = 'venue_booking'
+				AND p.post_status = 'publish'
+				AND CAST( start_m.meta_value AS UNSIGNED ) < %d
+				AND CAST( end_m.meta_value AS UNSIGNED ) > %d
+				AND (
+					status_m.meta_value = 'confirmed'
+					OR (
+						status_m.meta_value = 'hold'
+						AND p.post_date_gmt >= %s
+					)
+				)
+			LIMIT 1",
+			(string) $space_id,
+			$end_utc,
+			$start_utc,
+			$hold_cutoff
+		)
+	);
+
+	return null !== $found;
+}
+
+/**
+ * Insert a soft-hold booking after validation (caller must hold the mutex).
+ *
+ * @return array{booking_id:int,status:string,space_id:int,start_datetime:int,end_datetime:int,expires_at:int}|\WP_Error
+ */
+function venuestack_core_create_hold( int $space_id, int $start_utc, int $end_utc ) {
+	if ( $end_utc <= $start_utc ) {
+		return new WP_Error(
+			'venuestack_invalid_range',
+			__( 'End must be after start.', 'venuestack-core' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	if ( ! venuestack_core_space_exists( $space_id ) ) {
+		return new WP_Error(
+			'venuestack_invalid_space',
+			__( 'Venue space not found.', 'venuestack-core' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	$min_hours = (int) get_post_meta( $space_id, 'minimum_booking_hours', true );
+	if ( $min_hours > 0 ) {
+		$hours = ( $end_utc - $start_utc ) / HOUR_IN_SECONDS;
+		if ( $hours < $min_hours ) {
+			return new WP_Error(
+				'venuestack_below_minimum',
+				sprintf(
+					/* translators: %d: minimum hours */
+					__( 'Booking must be at least %d hours.', 'venuestack-core' ),
+					$min_hours
+				),
+				array( 'status' => 400 )
+			);
+		}
+	}
+
+	if ( venuestack_core_has_booking_overlap( $space_id, $start_utc, $end_utc ) ) {
+		return new WP_Error(
+			'venuestack_overlap',
+			__( 'That time range is not available for this space.', 'venuestack-core' ),
+			array( 'status' => 409 )
+		);
+	}
+
+	$space_title = get_the_title( $space_id );
+	$title       = sprintf(
+		/* translators: 1: space title, 2: UTC start timestamp */
+		__( 'Hold — %1$s — %2$s', 'venuestack-core' ),
+		$space_title,
+		gmdate( 'Y-m-d H:i', $start_utc ) . ' UTC'
+	);
+
+	$author = get_current_user_id();
+	if ( $author < 1 ) {
+		$author = 1;
+	}
+
+	$booking_id = wp_insert_post(
+		array(
+			'post_type'   => 'venue_booking',
+			'post_status' => 'publish',
+			'post_title'  => $title,
+			'post_author' => $author,
+		),
+		true
+	);
+
+	if ( is_wp_error( $booking_id ) ) {
+		return $booking_id;
+	}
+
+	update_post_meta( $booking_id, 'space_id', $space_id );
+	update_post_meta( $booking_id, 'start_datetime', $start_utc );
+	update_post_meta( $booking_id, 'end_datetime', $end_utc );
+	update_post_meta( $booking_id, 'status', 'hold' );
+	update_post_meta( $booking_id, 'wc_order_id', 0 );
+
+	$created_gmt = get_post_field( 'post_date_gmt', $booking_id );
+	$created_ts  = $created_gmt ? strtotime( $created_gmt . ' UTC' ) : time();
+
+	return array(
+		'booking_id'     => (int) $booking_id,
+		'status'         => 'hold',
+		'space_id'       => $space_id,
+		'start_datetime' => $start_utc,
+		'end_datetime'   => $end_utc,
+		'expires_at'     => $created_ts + VENUESTACK_HOLD_TTL,
+	);
+}

@@ -21,6 +21,8 @@ define( 'VENUESTACK_CORE_URL', plugin_dir_url( __FILE__ ) );
 require_once VENUESTACK_CORE_PATH . 'includes/post-types.php';
 require_once VENUESTACK_CORE_PATH . 'includes/taxonomies.php';
 require_once VENUESTACK_CORE_PATH . 'includes/meta.php';
+require_once VENUESTACK_CORE_PATH . 'includes/booking.php';
+require_once VENUESTACK_CORE_PATH . 'includes/rest-holds.php';
 
 /**
  * Flush rewrite rules once after CPT/taxonomy registration changes.
