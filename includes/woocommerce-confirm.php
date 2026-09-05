@@ -8,39 +8,69 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Flip linked venue_booking from hold → confirmed after payment.
+ * Flip linked venue_booking from hold → confirmed.
+ *
+ * Idempotent: only acts when status is still hold.
  *
  * @param int $order_id WC order ID.
+ * @return bool True when status was flipped to confirmed.
  */
-function venuestack_core_on_payment_complete( int $order_id ): void {
+function venuestack_core_confirm_booking_for_order( int $order_id ): bool {
 	if ( ! function_exists( 'wc_get_order' ) ) {
-		return;
+		return false;
 	}
 
 	$order = wc_get_order( $order_id );
 	if ( ! $order instanceof WC_Order ) {
-		return;
+		return false;
 	}
 
 	$booking_id = (int) $order->get_meta( '_venuestack_booking_id' );
 	if ( $booking_id <= 0 ) {
-		return;
+		return false;
 	}
 
 	$booking = get_post( $booking_id );
 	if ( ! $booking instanceof WP_Post || 'venue_booking' !== $booking->post_type ) {
-		return;
+		return false;
 	}
 
 	if ( 'hold' !== (string) get_post_meta( $booking_id, 'status', true ) ) {
-		return;
+		return false;
 	}
 
 	$linked_order = (int) get_post_meta( $booking_id, 'wc_order_id', true );
 	if ( $linked_order > 0 && $linked_order !== $order_id ) {
-		return;
+		return false;
 	}
 
 	update_post_meta( $booking_id, 'status', 'confirmed' );
+
+	return true;
+}
+
+/**
+ * @param int $order_id WC order ID.
+ */
+function venuestack_core_on_payment_complete( int $order_id ): void {
+	venuestack_core_confirm_booking_for_order( $order_id );
 }
 add_action( 'woocommerce_payment_complete', 'venuestack_core_on_payment_complete' );
+
+/**
+ * COD / manual gateways often land on processing without payment_complete.
+ *
+ * @param int $order_id WC order ID.
+ */
+function venuestack_core_on_order_status_processing( int $order_id ): void {
+	venuestack_core_confirm_booking_for_order( $order_id );
+}
+add_action( 'woocommerce_order_status_processing', 'venuestack_core_on_order_status_processing' );
+
+/**
+ * @param int $order_id WC order ID.
+ */
+function venuestack_core_on_order_status_completed( int $order_id ): void {
+	venuestack_core_confirm_booking_for_order( $order_id );
+}
+add_action( 'woocommerce_order_status_completed', 'venuestack_core_on_order_status_completed' );

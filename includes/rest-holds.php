@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/booking.php';
+
 /**
  * Register hold routes.
  */
@@ -47,12 +50,17 @@ function venuestack_core_register_hold_routes(): void {
 add_action( 'rest_api_init', 'venuestack_core_register_hold_routes' );
 
 /**
- * POST /venuestack/v1/holds — mutex → overlap check → insert hold.
+ * POST /venuestack/v1/holds — rate limit → mutex → overlap check → insert hold.
  *
  * @param WP_REST_Request $request Request.
  * @return WP_REST_Response|WP_Error
  */
 function venuestack_core_rest_create_hold( WP_REST_Request $request ) {
+	$rate = venuestack_core_rate_limit_holds();
+	if ( is_wp_error( $rate ) ) {
+		return $rate;
+	}
+
 	$space_id = (int) $request['space_id'];
 	$timezone = $request['timezone'] ?: null;
 

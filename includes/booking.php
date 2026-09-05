@@ -7,40 +7,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/security.php';
+
 /** Soft-hold lifetime in seconds (read-time expiry window). */
 const VENUESTACK_HOLD_TTL = 15 * MINUTE_IN_SECONDS;
-
-/** Space mutex transient lifetime in seconds. */
-const VENUESTACK_MUTEX_TTL = 10;
-
-/**
- * Transient key for a space booking mutex.
- */
-function venuestack_core_space_mutex_key( int $space_id ): string {
-	return 'venuestack_space_lock_' . $space_id;
-}
-
-/**
- * Try to acquire a short-lived mutex for a space.
- */
-function venuestack_core_acquire_space_lock( int $space_id ): bool {
-	$key = venuestack_core_space_mutex_key( $space_id );
-
-	if ( false !== get_transient( $key ) ) {
-		return false;
-	}
-
-	set_transient( $key, 1, VENUESTACK_MUTEX_TTL );
-
-	return true;
-}
-
-/**
- * Release the space mutex.
- */
-function venuestack_core_release_space_lock( int $space_id ): void {
-	delete_transient( venuestack_core_space_mutex_key( $space_id ) );
-}
 
 /**
  * Parse a datetime string to a UTC Unix timestamp.
@@ -143,7 +113,7 @@ function venuestack_core_has_booking_overlap( int $space_id, int $start_utc, int
 /**
  * Insert a soft-hold booking after validation (caller must hold the mutex).
  *
- * @return array{booking_id:int,status:string,space_id:int,start_datetime:int,end_datetime:int,expires_at:int}|\WP_Error
+ * @return array{booking_id:int,status:string,space_id:int,start_datetime:int,end_datetime:int,expires_at:int,hold_token:string}|\WP_Error
  */
 function venuestack_core_create_hold( int $space_id, int $start_utc, int $end_utc ) {
 	if ( $end_utc <= $start_utc ) {
@@ -221,6 +191,7 @@ function venuestack_core_create_hold( int $space_id, int $start_utc, int $end_ut
 
 	$created_gmt = get_post_field( 'post_date_gmt', $booking_id );
 	$created_ts  = $created_gmt ? strtotime( $created_gmt . ' UTC' ) : time();
+	$expires_at  = $created_ts + VENUESTACK_HOLD_TTL;
 
 	return array(
 		'booking_id'     => (int) $booking_id,
@@ -228,6 +199,7 @@ function venuestack_core_create_hold( int $space_id, int $start_utc, int $end_ut
 		'space_id'       => $space_id,
 		'start_datetime' => $start_utc,
 		'end_datetime'   => $end_utc,
-		'expires_at'     => $created_ts + VENUESTACK_HOLD_TTL,
+		'expires_at'     => $expires_at,
+		'hold_token'     => venuestack_core_create_hold_token( (int) $booking_id, $expires_at ),
 	);
 }

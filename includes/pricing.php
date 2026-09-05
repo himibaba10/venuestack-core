@@ -60,6 +60,19 @@ function venuestack_core_calculate_price(
 		);
 	}
 
+	$max_capacity = (int) get_post_meta( $space_id, 'max_capacity', true );
+	if ( $max_capacity > 0 && $headcount > $max_capacity ) {
+		return new WP_Error(
+			'venuestack_over_capacity',
+			sprintf(
+				/* translators: %d: max capacity */
+				__( 'Headcount exceeds this space capacity of %d.', 'venuestack-core' ),
+				$max_capacity
+			),
+			array( 'status' => 400 )
+		);
+	}
+
 	$hours = ( $end_utc - $start_utc ) / (float) HOUR_IN_SECONDS;
 
 	$min_hours = (int) get_post_meta( $space_id, 'minimum_booking_hours', true );

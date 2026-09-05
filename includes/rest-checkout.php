@@ -25,6 +25,11 @@ function venuestack_core_register_checkout_routes(): void {
 					'minimum'           => 1,
 					'sanitize_callback' => 'absint',
 				),
+				'hold_token' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 				'headcount'  => array(
 					'required'          => false,
 					'type'              => 'integer',
@@ -74,7 +79,8 @@ function venuestack_core_rest_checkout( WP_REST_Request $request ) {
 		(int) $request['booking_id'],
 		(int) $request['headcount'],
 		(int) $request['package_id'],
-		$billing
+		$billing,
+		(string) $request['hold_token']
 	);
 
 	if ( is_wp_error( $result ) ) {

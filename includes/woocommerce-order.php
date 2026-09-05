@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/security.php';
+
 /**
  * Whether a hold booking is still active (not expired).
  */
@@ -27,6 +29,47 @@ function venuestack_core_is_hold_active( int $booking_id ): bool {
 }
 
 /**
+ * Atomically claim wc_order_id on a booking (only if still 0/empty).
+ */
+function venuestack_core_claim_booking_order_id( int $booking_id, int $order_id ): bool {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$updated = $wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$wpdb->postmeta}
+			SET meta_value = %s
+			WHERE post_id = %d
+				AND meta_key = 'wc_order_id'
+				AND meta_value IN ( '0', '' )",
+			(string) $order_id,
+			$booking_id
+		)
+	);
+
+	if ( 1 === (int) $updated ) {
+		clean_post_cache( $booking_id );
+		return true;
+	}
+
+	$current = get_post_meta( $booking_id, 'wc_order_id', true );
+	if ( '' === $current || false === $current ) {
+		return (bool) add_post_meta( $booking_id, 'wc_order_id', $order_id, true );
+	}
+
+	return false;
+}
+
+/**
+ * Delete a WC order created during a failed checkout attempt.
+ */
+function venuestack_core_delete_orphan_order( $order ): void {
+	if ( $order instanceof WC_Order ) {
+		$order->delete( true );
+	}
+}
+
+/**
  * Build a WC order with custom fee line items from server-side pricing.
  *
  * Ignores any client-supplied total. Rates come from DB via
@@ -36,13 +79,15 @@ function venuestack_core_is_hold_active( int $booking_id ): bool {
  * @param int                  $headcount  Guest count.
  * @param int                  $package_id Optional event_package ID.
  * @param array<string,string> $billing    Optional billing fields.
+ * @param string               $hold_token Signed hold token from /holds.
  * @return array{order_id:int,booking_id:int,total:float,currency:string,payment_method:string,pricing:array}|\WP_Error
  */
 function venuestack_core_create_order_for_booking(
 	int $booking_id,
 	int $headcount = 0,
 	int $package_id = 0,
-	array $billing = array()
+	array $billing = array(),
+	string $hold_token = ''
 ) {
 	if ( ! function_exists( 'wc_create_order' ) ) {
 		return new WP_Error(
@@ -52,6 +97,46 @@ function venuestack_core_create_order_for_booking(
 		);
 	}
 
+	if ( ! venuestack_core_verify_hold_token( $booking_id, $hold_token ) ) {
+		return new WP_Error(
+			'venuestack_invalid_token',
+			__( 'Invalid or expired hold token.', 'venuestack-core' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	if ( ! venuestack_core_acquire_booking_lock( $booking_id ) ) {
+		return new WP_Error(
+			'venuestack_locked',
+			__( 'This booking is busy processing checkout. Try again.', 'venuestack-core' ),
+			array( 'status' => 423 )
+		);
+	}
+
+	try {
+		return venuestack_core_create_order_for_booking_locked(
+			$booking_id,
+			$headcount,
+			$package_id,
+			$billing
+		);
+	} finally {
+		venuestack_core_release_booking_lock( $booking_id );
+	}
+}
+
+/**
+ * Create order while holding the booking mutex.
+ *
+ * @param array<string,string> $billing Billing fields.
+ * @return array{order_id:int,booking_id:int,total:float,currency:string,payment_method:string,pricing:array}|\WP_Error
+ */
+function venuestack_core_create_order_for_booking_locked(
+	int $booking_id,
+	int $headcount,
+	int $package_id,
+	array $billing
+) {
 	if ( ! venuestack_core_is_hold_active( $booking_id ) ) {
 		return new WP_Error(
 			'venuestack_hold_inactive',
@@ -87,6 +172,14 @@ function venuestack_core_create_order_for_booking(
 
 	if ( is_wp_error( $order ) ) {
 		return $order;
+	}
+
+	if ( ! $order instanceof WC_Order ) {
+		return new WP_Error(
+			'venuestack_order_failed',
+			__( 'Could not create WooCommerce order.', 'venuestack-core' ),
+			array( 'status' => 500 )
+		);
 	}
 
 	$space_title = get_the_title( $space_id );
@@ -155,8 +248,24 @@ function venuestack_core_create_order_for_booking(
 	$order->calculate_totals( false );
 	$order->save();
 
-	$order_id = $order->get_id();
-	update_post_meta( $booking_id, 'wc_order_id', $order_id );
+	$order_id = (int) $order->get_id();
+	if ( $order_id < 1 ) {
+		venuestack_core_delete_orphan_order( $order );
+		return new WP_Error(
+			'venuestack_order_failed',
+			__( 'Could not create WooCommerce order.', 'venuestack-core' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	if ( ! venuestack_core_claim_booking_order_id( $booking_id, $order_id ) ) {
+		venuestack_core_delete_orphan_order( $order );
+		return new WP_Error(
+			'venuestack_order_exists',
+			__( 'An order already exists for this booking.', 'venuestack-core' ),
+			array( 'status' => 409 )
+		);
+	}
 
 	return array(
 		'order_id'       => $order_id,
