@@ -23,7 +23,7 @@ function venuestack_core_register_post_types(): void {
 			'rest_base'     => 'venue-spaces',
 			'menu_position' => 20,
 			'menu_icon'     => 'dashicons-building',
-			'supports'      => array( 'title', 'editor', 'thumbnail', 'revisions' ),
+			'supports'      => array( 'title', 'editor', 'thumbnail', 'revisions', 'custom-fields' ),
 			'has_archive'   => true,
 			'rewrite'       => array(
 				'slug'       => 'spaces',
@@ -44,7 +44,7 @@ function venuestack_core_register_post_types(): void {
 			'rest_base'     => 'event-packages',
 			'menu_position' => 21,
 			'menu_icon'     => 'dashicons-carrot',
-			'supports'      => array( 'title', 'editor', 'thumbnail' ),
+			'supports'      => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 			'has_archive'   => true,
 			'rewrite'       => array(
 				'slug'       => 'packages',

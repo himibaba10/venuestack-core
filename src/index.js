@@ -1,4 +1,4 @@
 /**
- * VenueStack Core — block and frontend entry point.
- * Blocks and Interactivity API stores will register here.
+ * VenueStack Core — editor/frontend entry (thin bootstrap).
  */
+import './editor/space-details-panel';
