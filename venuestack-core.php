@@ -23,21 +23,24 @@ require_once VENUESTACK_CORE_PATH . 'includes/taxonomies.php';
 require_once VENUESTACK_CORE_PATH . 'includes/meta.php';
 require_once VENUESTACK_CORE_PATH . 'includes/booking.php';
 require_once VENUESTACK_CORE_PATH . 'includes/rest-holds.php';
+require_once VENUESTACK_CORE_PATH . 'includes/cron-holds.php';
 
 /**
- * Flush rewrite rules once after CPT/taxonomy registration changes.
+ * Flush rewrite rules and schedule hold garbage collection.
  */
 function venuestack_core_activate(): void {
 	venuestack_core_register_post_types();
 	venuestack_core_register_taxonomies();
 	flush_rewrite_rules();
+	venuestack_core_schedule_hold_gc();
 }
 register_activation_hook( __FILE__, 'venuestack_core_activate' );
 
 /**
- * Flush rewrite rules on deactivate.
+ * Flush rewrite rules and clear hold GC cron.
  */
 function venuestack_core_deactivate(): void {
+	venuestack_core_unschedule_hold_gc();
 	flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, 'venuestack_core_deactivate' );
