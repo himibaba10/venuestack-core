@@ -149,6 +149,9 @@ function venuestack_core_create_order_for_booking(
 	$order->update_meta_data( '_venuestack_start_datetime', $start_utc );
 	$order->update_meta_data( '_venuestack_end_datetime', $end_utc );
 
+	// Fee lines have no product stock — mark reduced so WC skips inventory paths.
+	$order->set_order_stock_reduced( true );
+
 	$order->calculate_totals( false );
 	$order->save();
 
