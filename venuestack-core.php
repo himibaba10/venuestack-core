@@ -12,11 +12,11 @@
  * @package VenuestackCore
  */
 
-defined( 'ABSPATH' ) || exit;
+defined('ABSPATH') || exit;
 
-define( 'VENUESTACK_CORE_VERSION', '0.1.0' );
-define( 'VENUESTACK_CORE_PATH', plugin_dir_path( __FILE__ ) );
-define( 'VENUESTACK_CORE_URL', plugin_dir_url( __FILE__ ) );
+define('VENUESTACK_CORE_VERSION', '0.1.0');
+define('VENUESTACK_CORE_PATH', plugin_dir_path(__FILE__));
+define('VENUESTACK_CORE_URL', plugin_dir_url(__FILE__));
 
 require_once VENUESTACK_CORE_PATH . 'includes/post-types.php';
 require_once VENUESTACK_CORE_PATH . 'includes/taxonomies.php';
@@ -34,30 +34,33 @@ require_once VENUESTACK_CORE_PATH . 'includes/cron-holds.php';
 /**
  * Flush rewrite rules and schedule hold garbage collection.
  */
-function venuestack_core_activate(): void {
+function venuestack_core_activate(): void
+{
 	venuestack_core_register_post_types();
 	venuestack_core_register_taxonomies();
 	flush_rewrite_rules();
 	venuestack_core_schedule_hold_gc();
 }
-register_activation_hook( __FILE__, 'venuestack_core_activate' );
+register_activation_hook(__FILE__, 'venuestack_core_activate');
 
 /**
  * Flush rewrite rules and clear hold GC cron.
  */
-function venuestack_core_deactivate(): void {
+function venuestack_core_deactivate(): void
+{
 	venuestack_core_unschedule_hold_gc();
 	flush_rewrite_rules();
 }
-register_deactivation_hook( __FILE__, 'venuestack_core_deactivate' );
+register_deactivation_hook(__FILE__, 'venuestack_core_deactivate');
 
 /**
  * Enqueue built editor/script assets when present.
  */
-function venuestack_core_enqueue_assets(): void {
+function venuestack_core_enqueue_assets(): void
+{
 	$asset_file = VENUESTACK_CORE_PATH . 'build/index.asset.php';
 
-	if ( ! file_exists( $asset_file ) ) {
+	if (!file_exists($asset_file)) {
 		return;
 	}
 
@@ -71,4 +74,4 @@ function venuestack_core_enqueue_assets(): void {
 		true
 	);
 }
-add_action( 'enqueue_block_editor_assets', 'venuestack_core_enqueue_assets' );
+add_action('enqueue_block_editor_assets', 'venuestack_core_enqueue_assets');

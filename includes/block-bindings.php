@@ -79,12 +79,11 @@ function venuestack_core_get_space_field_binding(array $source_args, WP_Block $b
 			if ($value <= 0) {
 				return '';
 			}
-			$formatted = function_exists('wc_price')
-				? wp_strip_all_tags(wc_price($value))
-				: '$' . number_format_i18n($value, 2);
+			$decimals  = (floor($value) === $value) ? 0 : 2;
+			$formatted = '$' . number_format_i18n($value, $decimals);
 			return sprintf(
-				/* translators: %s: formatted hourly rate */
-				__('%s / hour', 'venuestack-core'),
+				/* translators: %s: formatted hourly rate like $400 */
+				__('%s/hr', 'venuestack-core'),
 				$formatted
 			);
 
@@ -93,7 +92,7 @@ function venuestack_core_get_space_field_binding(array $source_args, WP_Block $b
 			return $value > 0
 				? sprintf(
 					/* translators: %d: minimum hours */
-					_n('%d hour minimum', '%d hours minimum', $value, 'venuestack-core'),
+					_n('%d hr min', '%d hr min', $value, 'venuestack-core'),
 					$value
 				)
 				: '';

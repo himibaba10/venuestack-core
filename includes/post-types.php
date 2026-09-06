@@ -23,7 +23,7 @@ function venuestack_core_register_post_types(): void {
 			'rest_base'     => 'venue-spaces',
 			'menu_position' => 20,
 			'menu_icon'     => 'dashicons-building',
-			'supports'      => array( 'title', 'editor', 'thumbnail', 'revisions', 'custom-fields' ),
+			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'revisions', 'custom-fields' ),
 			'has_archive'   => true,
 			'rewrite'       => array(
 				'slug'       => 'spaces',
