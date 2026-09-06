@@ -29,5 +29,8 @@
 		"src/**/*.{css,scss}": [
 			"wp-scripts lint-style"
 		]
+	},
+	"dependencies": {
+		"lucide-react": "^1.41.0"
 	}
 }

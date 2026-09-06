@@ -5,6 +5,9 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
+# Compiled assets (run `bun run build`)
+/build/
+
 # Build tooling caches
 /.cache/
 /.parcel-cache/
