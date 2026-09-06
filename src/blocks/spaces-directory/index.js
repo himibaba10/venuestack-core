@@ -1,5 +1,5 @@
 /**
- * Register Spaces Filters dynamic block (editor + PHP render).
+ * Register Spaces Directory dynamic block (filters + grid).
  */
 import { registerBlockType } from '@wordpress/blocks';
 import Edit from './edit';

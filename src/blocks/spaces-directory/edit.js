@@ -1,18 +1,12 @@
-/**
- * Editor view for Spaces Filters — ServerSideRender of the PHP markup.
- */
 import { useBlockProps } from '@wordpress/block-editor';
 import { Disabled } from '@wordpress/components';
-import ServerSideRender from '@wordpress/server-side-render';
 import { __ } from '@wordpress/i18n';
+import ServerSideRender from '@wordpress/server-side-render';
 import metadata from './block.json';
 
-/**
- * @return {JSX.Element} Editor preview for the spaces filters block.
- */
 export default function Edit() {
 	const blockProps = useBlockProps( {
-		className: 'venuestack-spaces-filters-editor',
+		className: 'venuestack-spaces-directory-editor',
 	} );
 
 	return (
@@ -23,7 +17,7 @@ export default function Edit() {
 					EmptyResponsePlaceholder={ () => (
 						<p>
 							{ __(
-								'Spaces filters will appear here on the front end.',
+								'Spaces directory will appear here on the front end.',
 								'venuestack-core'
 							) }
 						</p>
@@ -31,7 +25,7 @@ export default function Edit() {
 					ErrorResponsePlaceholder={ () => (
 						<p>
 							{ __(
-								'Could not preview spaces filters.',
+								'Could not preview spaces directory.',
 								'venuestack-core'
 							) }
 						</p>

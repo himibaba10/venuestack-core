@@ -53,46 +53,60 @@ function venuestack_core_get_space_field_binding(array $source_args, WP_Block $b
 
 	$key = isset($source_args['key']) ? (string) $source_args['key'] : '';
 
-	switch ($key) {
+	return venuestack_core_format_space_field( $post_id, $key );
+}
+
+/**
+ * Format a venue_space meta field for display.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $key     Meta key.
+ */
+function venuestack_core_format_space_field( int $post_id, string $key ): string {
+	if ( $post_id < 1 || '' === $key ) {
+		return '';
+	}
+
+	switch ( $key ) {
 		case 'max_capacity':
-			$value = (int) get_post_meta($post_id, 'max_capacity', true);
+			$value = (int) get_post_meta( $post_id, 'max_capacity', true );
 			return $value > 0
 				? sprintf(
 					/* translators: %d: guest capacity */
-					__('%d guests', 'venuestack-core'),
+					__( '%d guests', 'venuestack-core' ),
 					$value
 				)
 				: '';
 
 		case 'square_footage':
-			$value = (int) get_post_meta($post_id, 'square_footage', true);
+			$value = (int) get_post_meta( $post_id, 'square_footage', true );
 			return $value > 0
 				? sprintf(
 					/* translators: %s: square footage number */
-					__('%s sq ft', 'venuestack-core'),
-					number_format_i18n($value)
+					__( '%s sq ft', 'venuestack-core' ),
+					number_format_i18n( $value )
 				)
 				: '';
 
 		case 'hourly_rate':
-			$value = (float) get_post_meta($post_id, 'hourly_rate', true);
-			if ($value <= 0) {
+			$value = (float) get_post_meta( $post_id, 'hourly_rate', true );
+			if ( $value <= 0 ) {
 				return '';
 			}
-			$decimals  = (floor($value) === $value) ? 0 : 2;
-			$formatted = '$' . number_format_i18n($value, $decimals);
+			$decimals  = ( floor( $value ) === $value ) ? 0 : 2;
+			$formatted = '$' . number_format_i18n( $value, $decimals );
 			return sprintf(
 				/* translators: %s: formatted hourly rate like $400 */
-				__('%s/hr', 'venuestack-core'),
+				__( '%s/hr', 'venuestack-core' ),
 				$formatted
 			);
 
 		case 'minimum_booking_hours':
-			$value = (int) get_post_meta($post_id, 'minimum_booking_hours', true);
+			$value = (int) get_post_meta( $post_id, 'minimum_booking_hours', true );
 			return $value > 0
 				? sprintf(
 					/* translators: %d: minimum hours */
-					_n('%d hr min', '%d hr min', $value, 'venuestack-core'),
+					_n( '%d hr min', '%d hr min', $value, 'venuestack-core' ),
 					$value
 				)
 				: '';

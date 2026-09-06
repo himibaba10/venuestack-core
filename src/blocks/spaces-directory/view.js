@@ -1,34 +1,17 @@
-/**
- * Spaces directory Interactivity store (filter chips + animated grid).
- *
- * Chip active state uses getContext() (not getElement()) so each button
- * evaluates against its own filter slug.
- */
-import { store, getContext, getElement } from '@wordpress/interactivity';
 import autoAnimate from '@formkit/auto-animate';
+import { getContext, getElement, store } from '@wordpress/interactivity';
 
-/** @type {HTMLElement|null} */
 let listEl = null;
 
-/** @type {Map<number, HTMLElement>} */
 const parked = new Map();
 
-/** @type {number[]} */
 let order = [];
 
-/**
- * @param {HTMLElement} li
- * @return {number} Post ID from the list item class, or 0.
- */
 function getPostId( li ) {
 	const match = ( li.className || '' ).match( /\bpost-(\d+)\b/ );
 	return match ? Number( match[ 1 ] ) : 0;
 }
 
-/**
- * @param {HTMLElement} li
- * @return {{ types: string[], amenities: string[] }} Filter taxonomies for the card.
- */
 function getCardContext( li ) {
 	const card = li.querySelector( '.venuestack-home-space-card' );
 	if ( ! card ) {
@@ -53,10 +36,6 @@ function getCardContext( li ) {
 	}
 }
 
-/**
- * @param {HTMLElement} li
- * @return {boolean} Whether the list item matches the current filters.
- */
 function liMatchesFilters( li ) {
 	const { types, amenities } = getCardContext( li );
 
@@ -69,9 +48,6 @@ function liMatchesFilters( li ) {
 	return true;
 }
 
-/**
- * Park non-matching posts and restore matches so auto-animate can run.
- */
 function syncGrid() {
 	if ( ! listEl ) {
 		listEl = document.querySelector(
