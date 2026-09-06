@@ -1,0 +1,4 @@
+# Normalize to LF so Prettier/lint-staged stay consistent on Windows.
+* text=auto eol=lf
+*.{js,jsx,ts,tsx,cjs,mjs,json,css,scss,md,yml,yaml,php,html} text eol=lf
+*.{png,jpg,jpeg,gif,webp,ico,woff,woff2,ttf,eot,zip} binary

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "venuestack/spaces-directory",
+  "title": "Spaces Directory",
+  "category": "widgets",
+  "icon": "filter",
+  "description": "Runtime Interactivity module for the venue_space archive filters.",
+  "supports": {
+    "inserter": false,
+    "html": false,
+    "multiple": false
+  },
+  "textdomain": "venuestack-core",
+  "viewScriptModule": "file:./view.js"
+}

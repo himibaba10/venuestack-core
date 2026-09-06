@@ -1,13 +1,13 @@
 {
 	"name": "venuestack-core",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "VenueStack companion block plugin for multi-space venue bookings.",
 	"author": "VenueStack",
 	"license": "GPL-2.0-or-later",
 	"packageManager": "bun@1.3.0",
 	"main": "build/index.js",
 	"scripts": {
-		"build": "wp-scripts build",
+		"build": "wp-scripts build src/index.js && wp-scripts build --experimental-modules",
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style",
@@ -31,6 +31,7 @@
 		]
 	},
 	"dependencies": {
+		"@formkit/auto-animate": "^0.10.0",
 		"lucide-react": "^1.41.0"
 	}
 }
