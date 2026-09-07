@@ -2,7 +2,7 @@
  * Booking panel Interactivity store (hold → checkout).
  */
 import { store } from '@wordpress/interactivity';
-import { readJson } from './api';
+import { readJson, restHeaders } from './api';
 import { isStartAvailable, normalizeBusyRanges } from './availability';
 import { buildEndDateTime } from './datetime';
 import { errorMessage, formatMoney } from './format';
@@ -173,9 +173,7 @@ const { state } = store( 'venuestack/booking-panel', {
 			try {
 				const response = yield fetch( `${ state.restUrl }/holds`, {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
+					headers: restHeaders( state ),
 					credentials: 'same-origin',
 					body: JSON.stringify( {
 						space_id: state.spaceId,
@@ -242,9 +240,7 @@ const { state } = store( 'venuestack/booking-panel', {
 			try {
 				const response = yield fetch( `${ state.restUrl }/checkout`, {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
+					headers: restHeaders( state ),
 					credentials: 'same-origin',
 					body: JSON.stringify( {
 						booking_id: state.bookingId,

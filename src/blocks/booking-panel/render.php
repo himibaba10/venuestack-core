@@ -81,6 +81,7 @@ if ( function_exists( 'wp_interactivity_state' ) ) {
 		'venuestack/booking-panel',
 		array(
 			'restUrl'     => esc_url_raw( rest_url( 'venuestack' ) ),
+			'restNonce'   => wp_create_nonce( 'wp_rest' ),
 			'spaceId'     => $space_id,
 			'timezone'    => $timezone,
 			'hourlyRate'  => $hourly_rate,
