@@ -1,10 +1,11 @@
 /**
- * Entry: VenueStack admin Data Views (Spaces + Bookings inventory).
+ * Entry: VenueStack admin Data Views (Spaces / Bookings / Packages).
  *
  * Filename must not be index.js — wp-scripts would collide with src/index.js.
  */
 import { createRoot } from '@wordpress/element';
 import BookingsApp from './dataviews/bookings-app';
+import PackagesApp from './dataviews/packages-app';
 import SpacesApp from './dataviews/spaces-app';
 import './dataviews/style.css';
 
@@ -16,7 +17,12 @@ if ( rootEl ) {
 		rootEl.getAttribute( 'data-screen' ) ||
 		'spaces';
 
-	createRoot( rootEl ).render(
-		screen === 'bookings' ? <BookingsApp /> : <SpacesApp />
-	);
+	let app = <SpacesApp />;
+	if ( screen === 'bookings' ) {
+		app = <BookingsApp />;
+	} else if ( screen === 'packages' ) {
+		app = <PackagesApp />;
+	}
+
+	createRoot( rootEl ).render( app );
 }
