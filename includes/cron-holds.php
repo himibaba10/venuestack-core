@@ -79,7 +79,35 @@ function venuestack_core_gc_expired_holds(): int {
 	$deleted = 0;
 
 	foreach ( $query->posts as $booking_id ) {
-		$result = wp_delete_post( (int) $booking_id, true );
+		$booking_id = (int) $booking_id;
+		$order_id   = (int) get_post_meta( $booking_id, 'wc_order_id', true );
+
+		if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+			$order = wc_get_order( $order_id );
+			if ( $order instanceof WC_Order ) {
+				if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
+					// Payment landed but confirm hook missed — confirm instead of expiring.
+					venuestack_core_confirm_booking_for_order( $order_id );
+					continue;
+				}
+
+				if ( $order->has_status( array( 'pending', 'on-hold', 'failed', 'checkout-draft' ) ) ) {
+					// Prefer “hold expired” over a generic cancelled notice.
+					venuestack_core_send_booking_hold_expired_email( $booking_id );
+					update_post_meta( $booking_id, venuestack_core_booking_email_sent_meta_key( 'cancelled' ), 1 );
+					$order->update_status(
+						'cancelled',
+						__( 'VenueStack hold expired before payment.', 'venuestack-core' )
+					);
+					continue;
+				}
+
+				venuestack_core_cancel_booking_for_order( $order_id );
+				continue;
+			}
+		}
+
+		$result = wp_delete_post( $booking_id, true );
 
 		if ( $result ) {
 			++$deleted;

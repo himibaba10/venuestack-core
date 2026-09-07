@@ -46,6 +46,15 @@ function venuestack_core_confirm_booking_for_order( int $order_id ): bool {
 
 	update_post_meta( $booking_id, 'status', 'confirmed' );
 	venuestack_core_sync_booking_title( $booking_id );
+	venuestack_core_send_booking_confirmed_email( $booking_id );
+
+	/**
+	 * Fires after a booking is confirmed from a WooCommerce order.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @param int $order_id   Order ID.
+	 */
+	do_action( 'venuestack_booking_confirmed', $booking_id, $order_id );
 
 	return true;
 }
