@@ -2,6 +2,9 @@
 /**
  * Booking notification emails (confirmed, cancelled, hold expired).
  *
+ * HTML bodies live in templates/emails/ and can be overridden from the theme at:
+ * yourtheme/venuestack-core/emails/{template}.php
+ *
  * @package VenuestackCore
  */
 
@@ -18,6 +21,85 @@ function venuestack_core_format_booking_email_datetime( int $utc ): string {
 	}
 
 	return (string) wp_date( 'l, F j, Y g:i a', $utc );
+}
+
+/**
+ * Brand colors for inline email styles (aligned with theme.json).
+ *
+ * @return array<string, string>
+ */
+function venuestack_core_email_brand_colors(): array {
+	$brand = array(
+		'ink'     => '#211D1B',
+		'cream'   => '#F2ECE3',
+		'surface' => '#F8F4ED',
+		'stone'   => '#E4DACB',
+		'accent'  => '#A6763D',
+		'muted'   => '#857F78',
+	);
+
+	/**
+	 * Filter VenueStack email brand colors.
+	 *
+	 * @param array<string, string> $brand Color map.
+	 */
+	return apply_filters( 'venuestack_email_brand_colors', $brand );
+}
+
+/**
+ * Resolve an email template path (theme override wins).
+ *
+ * @param string $relative Relative path under emails/ (e.g. booking-confirmed.php).
+ */
+function venuestack_core_get_email_template_path( string $relative ): string {
+	$relative = ltrim( str_replace( '\\', '/', $relative ), '/' );
+	$theme    = trailingslashit( get_stylesheet_directory() ) . 'venuestack-core/emails/' . $relative;
+
+	if ( is_readable( $theme ) ) {
+		return $theme;
+	}
+
+	return VENUESTACK_CORE_PATH . 'templates/emails/' . $relative;
+}
+
+/**
+ * Map email type → template filename.
+ *
+ * @param string $type Email type.
+ */
+function venuestack_core_booking_email_template_slug( string $type ): string {
+	$map = array(
+		'confirmed'    => 'booking-confirmed.php',
+		'cancelled'    => 'booking-cancelled.php',
+		'hold_expired' => 'booking-hold-expired.php',
+	);
+
+	return $map[ $type ] ?? '';
+}
+
+/**
+ * Render a booking email HTML template.
+ *
+ * @param string               $type    Email type.
+ * @param array<string, mixed> $context Template context.
+ */
+function venuestack_core_render_booking_email_html( string $type, array $context ): string {
+	$slug = venuestack_core_booking_email_template_slug( $type );
+	if ( '' === $slug ) {
+		return '';
+	}
+
+	$path = venuestack_core_get_email_template_path( $slug );
+	if ( ! is_readable( $path ) ) {
+		return '';
+	}
+
+	$brand = venuestack_core_email_brand_colors();
+
+	ob_start();
+	// Templates expect $context, $brand, $type.
+	include $path;
+	return (string) ob_get_clean();
 }
 
 /**
@@ -125,7 +207,7 @@ function venuestack_core_booking_email_subject( string $type, array $context ): 
 }
 
 /**
- * Plain-text body by email type.
+ * Plain-text fallback body by email type.
  *
  * @param string               $type    Email type.
  * @param array<string, mixed> $context Template context.
@@ -185,25 +267,10 @@ function venuestack_core_booking_email_body_text( string $type, array $context )
 	}
 
 	$lines[] = '';
-	$lines[] = sprintf(
-		/* translators: %s: site name */
-		__( 'Thanks,', 'venuestack-core' ) . "\n" . $site
-	);
+	$lines[] = __( 'Thanks,', 'venuestack-core' );
+	$lines[] = $site;
 
 	return implode( "\n", $lines );
-}
-
-/**
- * Simple HTML body wrapping the plain-text content.
- *
- * @param string $text Plain-text body.
- */
-function venuestack_core_booking_email_body_html( string $text ): string {
-	$escaped = nl2br( esc_html( $text ) );
-
-	return '<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:16px;line-height:1.5;color:#1c1917;">'
-		. $escaped
-		. '</div>';
 }
 
 /**
@@ -252,7 +319,13 @@ function venuestack_core_send_booking_email( string $type, int $booking_id ): bo
 	$to      = (string) $context['email'];
 	$subject = venuestack_core_booking_email_subject( $type, $context );
 	$text    = venuestack_core_booking_email_body_text( $type, $context );
-	$html    = venuestack_core_booking_email_body_html( $text );
+	$html    = venuestack_core_render_booking_email_html( $type, $context );
+
+	if ( '' === $html ) {
+		$html = '<pre style="font-family:system-ui,sans-serif;white-space:pre-wrap;">'
+			. esc_html( $text )
+			. '</pre>';
+	}
 
 	/**
 	 * Filters booking email arguments before send.

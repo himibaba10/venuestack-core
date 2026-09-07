@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       VenueStack Core
  * Description:       Companion blocks and booking engine for the VenueStack theme.
- * Version:           0.1.23
+ * Version:           0.1.24
  * Requires at least: 6.7
  * Requires PHP:      8.0
  * Author:            VenueStack
@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('VENUESTACK_CORE_VERSION', '0.1.23');
+define('VENUESTACK_CORE_VERSION', '0.1.24');
 define('VENUESTACK_CORE_PATH', plugin_dir_path(__FILE__));
 define('VENUESTACK_CORE_URL', plugin_dir_url(__FILE__));
 
