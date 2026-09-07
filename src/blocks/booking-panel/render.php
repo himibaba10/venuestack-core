@@ -34,8 +34,12 @@ $timezone = wp_timezone_string();
 $today    = wp_date( 'Y-m-d', null, wp_timezone() );
 
 $is_logged_in = is_user_logged_in();
-$login_url    = wp_login_url( get_permalink( $space_id ) ?: home_url( '/' ) );
-$register_url = get_option( 'users_can_register' ) ? wp_registration_url() : '';
+$after_auth   = get_permalink( $space_id ) ?: home_url( '/' );
+$login_url    = wp_login_url( $after_auth );
+$register_url = '';
+if ( get_option( 'users_can_register' ) ) {
+	$register_url = add_query_arg( 'redirect_to', $after_auth, wp_registration_url() );
+}
 
 $packages      = array();
 $package_posts = get_posts(
