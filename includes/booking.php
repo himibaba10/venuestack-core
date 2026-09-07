@@ -13,6 +13,82 @@ require_once __DIR__ . '/security.php';
 const VENUESTACK_HOLD_TTL = 15 * MINUTE_IN_SECONDS;
 
 /**
+ * Build a venue_booking post title from status + space + start (UTC).
+ *
+ * @param string $status   Booking status (hold|confirmed|pending|cancelled).
+ * @param int    $space_id Venue space post ID.
+ * @param int    $start_utc Start Unix timestamp (UTC).
+ */
+function venuestack_core_format_booking_title( string $status, int $space_id, int $start_utc ): string {
+	$space_title = get_the_title( $space_id );
+	if ( '' === $space_title ) {
+		$space_title = __( 'Space', 'venuestack-core' );
+	}
+
+	$when = gmdate( 'Y-m-d H:i', $start_utc ) . ' UTC';
+
+	switch ( $status ) {
+		case 'confirmed':
+			$prefix = __( 'Booking', 'venuestack-core' );
+			break;
+		case 'cancelled':
+			$prefix = __( 'Cancelled', 'venuestack-core' );
+			break;
+		case 'pending':
+			$prefix = __( 'Pending', 'venuestack-core' );
+			break;
+		case 'hold':
+		default:
+			$prefix = __( 'Hold', 'venuestack-core' );
+			break;
+	}
+
+	return sprintf(
+		/* translators: 1: status label (Hold/Booking/…), 2: space title, 3: UTC datetime */
+		__( '%1$s — %2$s — %3$s', 'venuestack-core' ),
+		$prefix,
+		$space_title,
+		$when
+	);
+}
+
+/**
+ * Refresh a booking post title from its current meta.
+ *
+ * @param int $booking_id Booking post ID.
+ * @return bool True when the title was updated.
+ */
+function venuestack_core_sync_booking_title( int $booking_id ): bool {
+	$booking = get_post( $booking_id );
+	if ( ! $booking instanceof WP_Post || 'venue_booking' !== $booking->post_type ) {
+		return false;
+	}
+
+	$status   = (string) get_post_meta( $booking_id, 'status', true );
+	$space_id = (int) get_post_meta( $booking_id, 'space_id', true );
+	$start    = (int) get_post_meta( $booking_id, 'start_datetime', true );
+
+	if ( $space_id < 1 || $start < 1 ) {
+		return false;
+	}
+
+	$title = venuestack_core_format_booking_title( $status ?: 'hold', $space_id, $start );
+	if ( $title === $booking->post_title ) {
+		return false;
+	}
+
+	$result = wp_update_post(
+		array(
+			'ID'         => $booking_id,
+			'post_title' => $title,
+		),
+		true
+	);
+
+	return ! is_wp_error( $result );
+}
+
+/**
  * Parse a datetime string to a UTC Unix timestamp.
  *
  * Timezone-aware strings (Z / ±offset) are respected.
@@ -156,13 +232,7 @@ function venuestack_core_create_hold( int $space_id, int $start_utc, int $end_ut
 		);
 	}
 
-	$space_title = get_the_title( $space_id );
-	$title       = sprintf(
-		/* translators: 1: space title, 2: UTC start timestamp */
-		__( 'Hold — %1$s — %2$s', 'venuestack-core' ),
-		$space_title,
-		gmdate( 'Y-m-d H:i', $start_utc ) . ' UTC'
-	);
+	$title = venuestack_core_format_booking_title( 'hold', $space_id, $start_utc );
 
 	$author = get_current_user_id();
 	if ( $author < 1 ) {

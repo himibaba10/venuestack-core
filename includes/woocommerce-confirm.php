@@ -45,6 +45,7 @@ function venuestack_core_confirm_booking_for_order( int $order_id ): bool {
 	}
 
 	update_post_meta( $booking_id, 'status', 'confirmed' );
+	venuestack_core_sync_booking_title( $booking_id );
 
 	return true;
 }
@@ -74,3 +75,44 @@ function venuestack_core_on_order_status_completed( int $order_id ): void {
 	venuestack_core_confirm_booking_for_order( $order_id );
 }
 add_action( 'woocommerce_order_status_completed', 'venuestack_core_on_order_status_completed' );
+
+/**
+ * One-shot: rename confirmed bookings that still use a Hold — title.
+ */
+function venuestack_core_maybe_repair_confirmed_booking_titles(): void {
+	if ( get_option( 'venuestack_repaired_booking_titles' ) ) {
+		return;
+	}
+
+	// Migrate pre-rename flag if present.
+	if ( get_option( 'venuestack_repaired_booking_titles_v1' ) ) {
+		update_option( 'venuestack_repaired_booking_titles', 1, false );
+		delete_option( 'venuestack_repaired_booking_titles_v1' );
+		return;
+	}
+
+	$bookings = get_posts(
+		array(
+			'post_type'              => 'venue_booking',
+			'post_status'            => 'publish',
+			'posts_per_page'         => 200,
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => true,
+			'meta_key'               => 'status',
+			'meta_value'             => 'confirmed',
+		)
+	);
+
+	foreach ( $bookings as $booking ) {
+		if ( ! $booking instanceof WP_Post ) {
+			continue;
+		}
+		if ( ! str_starts_with( $booking->post_title, 'Hold' ) ) {
+			continue;
+		}
+		venuestack_core_sync_booking_title( (int) $booking->ID );
+	}
+
+	update_option( 'venuestack_repaired_booking_titles', 1, false );
+}
+add_action( 'admin_init', 'venuestack_core_maybe_repair_confirmed_booking_titles' );

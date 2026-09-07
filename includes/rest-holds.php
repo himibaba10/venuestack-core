@@ -15,7 +15,7 @@ require_once __DIR__ . '/booking.php';
  */
 function venuestack_core_register_hold_routes(): void {
 	register_rest_route(
-		'venuestack/v1',
+		'venuestack',
 		'/holds',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -50,7 +50,7 @@ function venuestack_core_register_hold_routes(): void {
 add_action( 'rest_api_init', 'venuestack_core_register_hold_routes' );
 
 /**
- * POST /venuestack/v1/holds — rate limit → mutex → overlap check → insert hold.
+ * POST /venuestack/holds — rate limit → mutex → overlap check → insert hold.
  *
  * @param WP_REST_Request $request Request.
  * @return WP_REST_Response|WP_Error

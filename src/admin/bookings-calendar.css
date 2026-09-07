@@ -1,0 +1,91 @@
+/**
+ * VenueStack admin bookings calendar chrome.
+ */
+
+.venuestack-admin-calendar {
+	max-width: 1200px;
+}
+
+.venuestack-admin-calendar__toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+	margin: 1rem 0 1.25rem;
+}
+
+.venuestack-admin-calendar__toolbar label {
+	font-weight: 600;
+}
+
+.venuestack-admin-calendar__space {
+	min-width: 14rem;
+}
+
+.venuestack-admin-calendar__legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1rem;
+	margin: 0 0 0 auto;
+	padding: 0;
+	list-style: none;
+}
+
+.venuestack-admin-calendar__legend li {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.venuestack-admin-calendar__legend span {
+	display: inline-block;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: 2px;
+}
+
+.venuestack-admin-calendar__legend .is-confirmed {
+	background: #2f3b34;
+}
+
+.venuestack-admin-calendar__legend .is-hold {
+	background: #a6763d;
+}
+
+.venuestack-admin-calendar__legend .is-pending {
+	background: #c9a06b;
+}
+
+.venuestack-admin-calendar__legend .is-cancelled {
+	background: #e4dacb;
+	box-shadow: inset 0 0 0 1px #c4b5a0;
+}
+
+.venuestack-admin-calendar__mount {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 1rem;
+}
+
+.venuestack-admin-calendar__mount .fc {
+	--fc-border-color: #dcdcde;
+	--fc-button-bg-color: #2f3b34;
+	--fc-button-border-color: #2f3b34;
+	--fc-button-hover-bg-color: #a6763d;
+	--fc-button-hover-border-color: #a6763d;
+	--fc-button-active-bg-color: #211d1b;
+	--fc-button-active-border-color: #211d1b;
+	--fc-today-bg-color: rgba(166, 118, 61, 0.08);
+	font-family: inherit;
+}
+
+.venuestack-admin-calendar__mount .fc .fc-toolbar-title {
+	font-size: 1.25rem;
+}
+
+.venuestack-admin-calendar__mount .fc .fc-event {
+	cursor: pointer;
+}
