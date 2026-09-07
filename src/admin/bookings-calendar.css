@@ -18,8 +18,9 @@
 	font-weight: 600;
 }
 
-.venuestack-admin-calendar__space {
-	min-width: 14rem;
+.venuestack-admin-calendar__space,
+.venuestack-admin-calendar__status {
+	min-width: 12rem;
 }
 
 .venuestack-admin-calendar__legend {

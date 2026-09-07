@@ -3,6 +3,7 @@
  */
 import { getCalendarConfig } from './config';
 import { getSpaceFilter } from './space-filter';
+import { getStatusFilter } from './status-filter';
 
 /**
  * Fetch FullCalendar events for the visible range.
@@ -20,6 +21,11 @@ export function fetchEvents( fetchInfo, success, failure ) {
 	const spaceId = getSpaceFilter();
 	if ( spaceId > 0 ) {
 		url.searchParams.set( 'space_id', String( spaceId ) );
+	}
+
+	const status = getStatusFilter();
+	if ( status ) {
+		url.searchParams.set( 'status', status );
 	}
 
 	fetch( url.toString(), {

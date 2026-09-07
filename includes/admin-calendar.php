@@ -42,6 +42,16 @@ function venuestack_core_render_calendar_page(): void {
 			<select id="venuestack-calendar-space" class="venuestack-admin-calendar__space">
 				<option value="0"><?php echo esc_html__( 'All spaces', 'venuestack-core' ); ?></option>
 			</select>
+			<label for="venuestack-calendar-status">
+				<?php echo esc_html__( 'Status', 'venuestack-core' ); ?>
+			</label>
+			<select id="venuestack-calendar-status" class="venuestack-admin-calendar__status">
+				<option value=""><?php echo esc_html__( 'All statuses', 'venuestack-core' ); ?></option>
+				<option value="confirmed"><?php echo esc_html__( 'Confirmed', 'venuestack-core' ); ?></option>
+				<option value="hold"><?php echo esc_html__( 'Hold', 'venuestack-core' ); ?></option>
+				<option value="pending"><?php echo esc_html__( 'Pending', 'venuestack-core' ); ?></option>
+				<option value="cancelled"><?php echo esc_html__( 'Cancelled', 'venuestack-core' ); ?></option>
+			</select>
 			<ul class="venuestack-admin-calendar__legend" aria-label="<?php echo esc_attr__( 'Status legend', 'venuestack-core' ); ?>">
 				<li><span class="is-confirmed"></span><?php echo esc_html__( 'Confirmed', 'venuestack-core' ); ?></li>
 				<li><span class="is-hold"></span><?php echo esc_html__( 'Hold', 'venuestack-core' ); ?></li>
@@ -159,11 +169,74 @@ function venuestack_core_register_calendar_routes(): void {
 					'default'           => 0,
 					'sanitize_callback' => 'absint',
 				),
+				'status'   => array(
+					'type'              => 'string',
+					'required'          => false,
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_key',
+				),
 			),
 		)
 	);
 }
 add_action( 'rest_api_init', 'venuestack_core_register_calendar_routes' );
+
+/**
+ * Guest display name for a calendar event (order billing, else post author).
+ *
+ * @param WP_Post $booking  Booking post.
+ * @param int     $order_id Linked WooCommerce order ID.
+ * @return string Empty when unknown.
+ */
+function venuestack_core_calendar_guest_name( WP_Post $booking, int $order_id ): string {
+	if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+		$order = wc_get_order( $order_id );
+		if ( $order ) {
+			$name = trim( (string) $order->get_formatted_billing_full_name() );
+			if ( '' === $name ) {
+				$name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+			}
+			if ( '' !== $name ) {
+				return $name;
+			}
+		}
+	}
+
+	$author_id = (int) $booking->post_author;
+	if ( $author_id > 0 ) {
+		$user = get_userdata( $author_id );
+		if ( $user instanceof WP_User ) {
+			$display = trim( (string) $user->display_name );
+			if ( '' !== $display ) {
+				return $display;
+			}
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Calendar event title: space · guest · status (guest omitted when unknown).
+ *
+ * @param string $space_name Space title.
+ * @param string $status     Booking status key.
+ * @param string $guest_name Optional guest/customer name.
+ * @return string
+ */
+function venuestack_core_calendar_event_title( string $space_name, string $status, string $guest_name = '' ): string {
+	$status_label = function_exists( 'venuestack_core_booking_status_label' )
+		? venuestack_core_booking_status_label( $status )
+		: ucfirst( $status );
+
+	$parts = array( $space_name );
+	if ( '' !== $guest_name ) {
+		$parts[] = $guest_name;
+	}
+	$parts[] = $status_label;
+
+	return implode( ' · ', $parts );
+}
 
 /**
  * Map booking status to calendar colors (VenueStack tokens).
@@ -225,7 +298,12 @@ function venuestack_core_rest_admin_calendar( WP_REST_Request $request ) {
 		);
 	}
 
-	$space_id = (int) $request['space_id'];
+	$space_id       = (int) $request['space_id'];
+	$status_filter  = (string) $request['status'];
+	$allowed_status = array( 'confirmed', 'hold', 'pending', 'cancelled' );
+	if ( '' !== $status_filter && ! in_array( $status_filter, $allowed_status, true ) ) {
+		$status_filter = '';
+	}
 
 	$meta_query = array(
 		'relation' => 'AND',
@@ -249,6 +327,14 @@ function venuestack_core_rest_admin_calendar( WP_REST_Request $request ) {
 			'value'   => $space_id,
 			'compare' => '=',
 			'type'    => 'NUMERIC',
+		);
+	}
+
+	if ( '' !== $status_filter ) {
+		$meta_query[] = array(
+			'key'     => 'status',
+			'value'   => $status_filter,
+			'compare' => '=',
 		);
 	}
 
@@ -299,15 +385,10 @@ function venuestack_core_rest_admin_calendar( WP_REST_Request $request ) {
 		}
 		$space_name = (string) $space_cache[ $booking_space ];
 
-		$order_id = (int) get_post_meta( $booking->ID, 'wc_order_id', true );
-		$colors   = venuestack_core_calendar_status_colors( $status );
-
-		$title = sprintf(
-			/* translators: 1: space name, 2: booking status label */
-			__( '%1$s — %2$s', 'venuestack-core' ),
-			$space_name,
-			ucfirst( $status )
-		);
+		$order_id  = (int) get_post_meta( $booking->ID, 'wc_order_id', true );
+		$guest     = venuestack_core_calendar_guest_name( $booking, $order_id );
+		$colors    = venuestack_core_calendar_status_colors( $status );
+		$title     = venuestack_core_calendar_event_title( $space_name, $status, $guest );
 
 		$events[] = array_merge(
 			array(
@@ -320,6 +401,7 @@ function venuestack_core_rest_admin_calendar( WP_REST_Request $request ) {
 					'status'  => $status,
 					'spaceId' => $booking_space,
 					'orderId' => $order_id,
+					'guest'   => $guest,
 				),
 			),
 			$colors

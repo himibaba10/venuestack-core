@@ -8,6 +8,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import { getCalendarConfig } from './config';
 import { fetchEvents } from './fetch-events';
 import { bindSpaceFilterChange, populateSpaceFilter } from './space-filter';
+import { bindStatusFilterChange } from './status-filter';
 
 /**
  * @param {HTMLElement} mount Calendar mount node.
@@ -45,9 +46,12 @@ export function createBookingsCalendar( mount ) {
 	} );
 
 	calendar.render();
-	bindSpaceFilterChange( () => {
+
+	const refetch = () => {
 		calendar.refetchEvents();
-	} );
+	};
+	bindSpaceFilterChange( refetch );
+	bindStatusFilterChange( refetch );
 
 	return calendar;
 }
