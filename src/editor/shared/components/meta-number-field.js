@@ -3,6 +3,7 @@
  */
 import { TextControl } from '@wordpress/components';
 import { metaValueToInput } from '../utils/meta';
+import FieldLabel from './field-label';
 
 /**
  * @param {Object}   props          Component props.
@@ -12,22 +13,9 @@ import { metaValueToInput } from '../utils/meta';
  * @return {JSX.Element} Text control.
  */
 export default function MetaNumberField( { field, value, onChange } ) {
-	const Icon = field.Icon;
-
 	return (
 		<TextControl
-			label={
-				<span
-					style={ {
-						display: 'inline-flex',
-						alignItems: 'center',
-						gap: '0.4rem',
-					} }
-				>
-					<Icon size={ 14 } strokeWidth={ 1.75 } aria-hidden />
-					{ field.label }
-				</span>
-			}
+			label={ <FieldLabel Icon={ field.Icon } label={ field.label } /> }
 			help={ field.help }
 			type="number"
 			min={ 0 }

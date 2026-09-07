@@ -3,17 +3,17 @@
  */
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
+import MetaNumberField from '../../shared/components/meta-number-field';
+import { usePostTypeMeta } from '../../shared/hooks/use-post-type-meta';
 import { SPACE_DETAIL_FIELDS } from '../fields';
-import { useSpaceDetails } from '../hooks/use-space-details';
-import MetaNumberField from './meta-number-field';
 
 /**
  * @return {JSX.Element|null} Panel, or null when not editing a space.
  */
 export default function SpaceDetailsPanel() {
-	const { isSpace, meta, updateField } = useSpaceDetails();
+	const { isMatch, meta, updateField } = usePostTypeMeta( 'venue_space' );
 
-	if ( ! isSpace ) {
+	if ( ! isMatch ) {
 		return null;
 	}
 

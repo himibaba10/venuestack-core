@@ -1,4 +1,5 @@
 /**
- * VenueStack Core — editor/frontend entry (thin bootstrap).
+ * VenueStack Core — editor entry (thin bootstrap).
  */
-import './editor/space-details-panel';
+import './editor/space-details';
+import './editor/package-details';

@@ -1,5 +1,5 @@
 /**
- * Space details document panel state.
+ * Post meta helpers for VenueStack document panels.
  */
 import { useEntityProp } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
@@ -7,9 +7,10 @@ import { useCallback } from '@wordpress/element';
 import { parseMetaNumber } from '../utils/meta';
 
 /**
- * @return {{isSpace:boolean, meta:Object, updateField:Function}} Panel state.
+ * @param {string} expectedPostType CPT that owns this panel.
+ * @return {{isMatch:boolean, meta:Object, updateField:Function}} Panel state.
  */
-export function useSpaceDetails() {
+export function usePostTypeMeta( expectedPostType ) {
 	const postType = useSelect(
 		( select ) => select( 'core/editor' ).getCurrentPostType(),
 		[]
@@ -19,16 +20,21 @@ export function useSpaceDetails() {
 
 	const updateField = useCallback(
 		( key, type, value ) => {
+			let next = value;
+			if ( type === 'integer' || type === 'number' ) {
+				next = parseMetaNumber( value, type );
+			}
+
 			setMeta( {
 				...meta,
-				[ key ]: parseMetaNumber( value, type ),
+				[ key ]: next,
 			} );
 		},
 		[ meta, setMeta ]
 	);
 
 	return {
-		isSpace: postType === 'venue_space',
+		isMatch: postType === expectedPostType,
 		meta: meta || {},
 		updateField,
 	};
