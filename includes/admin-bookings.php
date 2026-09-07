@@ -215,12 +215,99 @@ function venuestack_core_get_booking_admin_rows( int $booking_id ): array {
 }
 
 /**
+ * Build a nonce-protected cancel URL for a booking.
+ *
+ * @param int         $booking_id Booking ID.
+ * @param string|null $redirect   Optional redirect URL after cancel.
+ */
+function venuestack_core_get_cancel_booking_url( int $booking_id, ?string $redirect = null ): string {
+	$args = array(
+		'action'     => 'venuestack_cancel_booking',
+		'booking_id' => $booking_id,
+	);
+
+	if ( is_string( $redirect ) && '' !== $redirect ) {
+		$args['redirect'] = $redirect;
+	}
+
+	return wp_nonce_url(
+		add_query_arg( $args, admin_url( 'admin-post.php' ) ),
+		'venuestack_cancel_booking'
+	);
+}
+
+/**
+ * Handle admin cancel booking requests.
+ */
+function venuestack_core_handle_cancel_booking_request(): void {
+	$booking_id = isset( $_REQUEST['booking_id'] ) ? absint( wp_unslash( $_REQUEST['booking_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	check_admin_referer( 'venuestack_cancel_booking' );
+
+	if ( $booking_id < 1 || ! current_user_can( 'edit_post', $booking_id ) ) {
+		wp_die( esc_html__( 'You do not have permission to cancel this booking.', 'venuestack-core' ) );
+	}
+
+	$result = venuestack_core_cancel_booking(
+		$booking_id,
+		array(
+			'sync_order' => true,
+			'send_email' => true,
+			'order_note' => __( 'Booking cancelled from VenueStack admin.', 'venuestack-core' ),
+		)
+	);
+
+	$redirect = isset( $_GET['redirect'] ) ? esc_url_raw( wp_unslash( $_GET['redirect'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( '' === $redirect ) {
+		$redirect = get_edit_post_link( $booking_id, 'raw' ) ?: admin_url( 'edit.php?post_type=venue_booking&page=venuestack-bookings-inventory' );
+	}
+
+	$redirect = add_query_arg(
+		array(
+			'venuestack_cancelled' => is_wp_error( $result ) ? '0' : '1',
+			'venuestack_cancel_msg' => is_wp_error( $result ) ? rawurlencode( $result->get_error_message() ) : '',
+		),
+		$redirect
+	);
+
+	wp_safe_redirect( $redirect );
+	exit;
+}
+add_action( 'admin_post_venuestack_cancel_booking', 'venuestack_core_handle_cancel_booking_request' );
+
+/**
+ * Admin notice after cancel attempt.
+ */
+function venuestack_core_cancel_booking_admin_notice(): void {
+	if ( ! isset( $_GET['venuestack_cancelled'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return;
+	}
+
+	$ok = '1' === (string) wp_unslash( $_GET['venuestack_cancelled'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+	if ( $ok ) {
+		echo '<div class="notice notice-success is-dismissible"><p>'
+			. esc_html__( 'Booking cancelled. Linked WooCommerce order was cancelled when possible, and the customer was emailed.', 'venuestack-core' )
+			. '</p></div>';
+		return;
+	}
+
+	$msg = isset( $_GET['venuestack_cancel_msg'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		? sanitize_text_field( rawurldecode( wp_unslash( $_GET['venuestack_cancel_msg'] ) ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		: __( 'Could not cancel booking.', 'venuestack-core' );
+
+	echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $msg ) . '</p></div>';
+}
+add_action( 'admin_notices', 'venuestack_core_cancel_booking_admin_notice' );
+
+/**
  * Render the Booking details metabox.
  *
  * @param WP_Post $post Booking post.
  */
 function venuestack_core_render_booking_details_metabox( WP_Post $post ): void {
-	$rows = venuestack_core_get_booking_admin_rows( (int) $post->ID );
+	$booking_id = (int) $post->ID;
+	$status     = (string) get_post_meta( $booking_id, 'status', true );
+	$rows       = venuestack_core_get_booking_admin_rows( $booking_id );
 	?>
 	<table class="form-table venuestack-booking-details" role="presentation">
 		<tbody>
@@ -241,8 +328,48 @@ function venuestack_core_render_booking_details_metabox( WP_Post $post ): void {
 	<p class="description">
 		<?php echo esc_html__( 'Guest, package, and payment details come from the linked WooCommerce order.', 'venuestack-core' ); ?>
 	</p>
+	<?php if ( venuestack_core_booking_can_cancel( $status ?: 'pending' ) ) : ?>
+		<p>
+			<a
+				class="button button-secondary"
+				style="color:#b32d2e;border-color:#b32d2e;"
+				href="<?php echo esc_url( venuestack_core_get_cancel_booking_url( $booking_id ) ); ?>"
+				onclick="return confirm('<?php echo esc_js( __( 'Cancel this booking and the linked WooCommerce order? The customer will be emailed.', 'venuestack-core' ) ); ?>');"
+			>
+				<?php echo esc_html__( 'Cancel booking', 'venuestack-core' ); ?>
+			</a>
+		</p>
+	<?php endif; ?>
 	<?php
 }
+
+/**
+ * Row action: Cancel on classic booking list screens.
+ *
+ * @param array<string,string> $actions Actions.
+ * @param WP_Post              $post    Post.
+ * @return array<string,string>
+ */
+function venuestack_core_booking_row_actions( array $actions, WP_Post $post ): array {
+	if ( 'venue_booking' !== $post->post_type ) {
+		return $actions;
+	}
+
+	$status = (string) get_post_meta( $post->ID, 'status', true );
+	if ( ! venuestack_core_booking_can_cancel( $status ?: 'pending' ) ) {
+		return $actions;
+	}
+
+	$actions['venuestack_cancel'] = sprintf(
+		'<a href="%1$s" style="color:#b32d2e;" onclick="return confirm(\'%3$s\');">%2$s</a>',
+		esc_url( venuestack_core_get_cancel_booking_url( (int) $post->ID ) ),
+		esc_html__( 'Cancel', 'venuestack-core' ),
+		esc_js( __( 'Cancel this booking and the linked WooCommerce order?', 'venuestack-core' ) )
+	);
+
+	return $actions;
+}
+add_filter( 'post_row_actions', 'venuestack_core_booking_row_actions', 10, 2 );
 
 /**
  * Customize venue_booking list columns.

@@ -279,13 +279,18 @@ function venuestack_core_enqueue_dataviews_assets( string $hook_suffix ): void {
 		'venuestack-dataviews',
 		'venuestackDataViews',
 		array(
-			'screen'       => $screen,
-			'timezone'     => wp_timezone_string(),
-			'adminUrl'     => esc_url_raw( admin_url() ),
-			'newSpaceUrl'  => esc_url_raw( admin_url( 'post-new.php?post_type=venue_space' ) ),
-			'editPostUrl'  => esc_url_raw( admin_url( 'post.php?post=%d&action=edit' ) ),
-			'orderEditUrl' => esc_url_raw( admin_url( 'admin.php?page=wc-orders&action=edit&id=' ) ),
-			'spaces'       => $space_options,
+			'screen'               => $screen,
+			'timezone'             => wp_timezone_string(),
+			'adminUrl'             => esc_url_raw( admin_url() ),
+			'newSpaceUrl'          => esc_url_raw( admin_url( 'post-new.php?post_type=venue_space' ) ),
+			'editPostUrl'          => esc_url_raw( admin_url( 'post.php?post=%d&action=edit' ) ),
+			'orderEditUrl'         => esc_url_raw( admin_url( 'admin.php?page=wc-orders&action=edit&id=' ) ),
+			'cancelBookingUrl'     => esc_url_raw( admin_url( 'admin-post.php' ) ),
+			'cancelBookingNonce'   => wp_create_nonce( 'venuestack_cancel_booking' ),
+			'bookingsInventoryUrl' => esc_url_raw(
+				admin_url( 'edit.php?post_type=venue_booking&page=venuestack-bookings-inventory' )
+			),
+			'spaces'               => $space_options,
 		)
 	);
 }

@@ -2,8 +2,8 @@
  * Shared Data Views action factories.
  */
 import { __ } from '@wordpress/i18n';
-import { external, pencil } from '@wordpress/icons';
-import { getEditUrl, getOrderUrl } from './urls';
+import { cancelCircleFilled, external, pencil } from '@wordpress/icons';
+import { getCancelBookingUrl, getEditUrl, getOrderUrl } from './urls';
 
 /**
  * @param {string} label Action label.
@@ -56,6 +56,40 @@ export function createViewOrderAction() {
 			if ( orderId > 0 ) {
 				window.location.assign( getOrderUrl( orderId ) );
 			}
+		},
+	};
+}
+
+/**
+ * @return {Object} Cancel booking (+ linked Woo order) action.
+ */
+export function createCancelBookingAction() {
+	return {
+		id: 'cancel',
+		label: __( 'Cancel booking', 'venuestack-core' ),
+		icon: cancelCircleFilled,
+		isDestructive: true,
+		isEligible: ( item ) => {
+			const status = item?.meta?.status || 'pending';
+			return [ 'hold', 'confirmed', 'pending' ].includes( status );
+		},
+		callback: ( items ) => {
+			const item = items?.[ 0 ];
+			if ( ! item?.id ) {
+				return;
+			}
+			// Admin destructive action — browser confirm is intentional.
+			// eslint-disable-next-line no-alert
+			const ok = window.confirm(
+				__(
+					'Cancel this booking and the linked WooCommerce order? The customer will be emailed.',
+					'venuestack-core'
+				)
+			);
+			if ( ! ok ) {
+				return;
+			}
+			window.location.assign( getCancelBookingUrl( item.id ) );
 		},
 	};
 }

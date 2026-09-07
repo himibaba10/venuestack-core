@@ -8,12 +8,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Flip linked venue_booking to cancelled and notify the customer.
+ * Flip linked venue_booking to cancelled when the Woo order is cancelled.
  *
- * Idempotent: only acts when status is hold or confirmed.
+ * Does not push status back to Woo (avoids loops). Idempotent.
  *
  * @param int $order_id WC order ID.
- * @return bool True when status was flipped to cancelled.
+ * @return bool True when the booking was cancelled (or already cancelled).
  */
 function venuestack_core_cancel_booking_for_order( int $order_id ): bool {
 	if ( ! function_exists( 'wc_get_order' ) ) {
@@ -35,29 +35,20 @@ function venuestack_core_cancel_booking_for_order( int $order_id ): bool {
 		return false;
 	}
 
-	$status = (string) get_post_meta( $booking_id, 'status', true );
-	if ( ! in_array( $status, array( 'hold', 'confirmed', 'pending' ), true ) ) {
-		return false;
-	}
-
 	$linked_order = (int) get_post_meta( $booking_id, 'wc_order_id', true );
 	if ( $linked_order > 0 && $linked_order !== $order_id ) {
 		return false;
 	}
 
-	update_post_meta( $booking_id, 'status', 'cancelled' );
-	venuestack_core_sync_booking_title( $booking_id );
-	venuestack_core_send_booking_cancelled_email( $booking_id );
+	$result = venuestack_core_cancel_booking(
+		$booking_id,
+		array(
+			'sync_order' => false,
+			'send_email' => true,
+		)
+	);
 
-	/**
-	 * Fires after a booking is cancelled from a WooCommerce order.
-	 *
-	 * @param int $booking_id Booking ID.
-	 * @param int $order_id   Order ID.
-	 */
-	do_action( 'venuestack_booking_cancelled', $booking_id, $order_id );
-
-	return true;
+	return ! is_wp_error( $result );
 }
 
 /**

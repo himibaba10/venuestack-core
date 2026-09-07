@@ -4,7 +4,11 @@
 import { useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { getDataViewsConfig } from '../utils/config';
-import { createEditAction, createViewOrderAction } from '../utils/actions';
+import {
+	createCancelBookingAction,
+	createEditAction,
+	createViewOrderAction,
+} from '../utils/actions';
 import { getBookingsFields } from '../fields/bookings';
 import { useInventoryDataViews } from './use-inventory-data-views';
 
@@ -67,6 +71,7 @@ export function useBookingsInventory() {
 		() => [
 			createEditAction( __( 'Edit booking', 'venuestack-core' ) ),
 			createViewOrderAction(),
+			createCancelBookingAction(),
 		],
 		[]
 	);
