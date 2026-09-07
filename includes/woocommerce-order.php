@@ -267,6 +267,15 @@ function venuestack_core_create_order_for_booking_locked(
 		);
 	}
 
+	/*
+	 * Match stock COD checkout: move pending → processing so
+	 * woocommerce_order_status_processing confirms the hold.
+	 */
+	$order->update_status(
+		'processing',
+		__( 'VenueStack booking checkout completed (COD).', 'venuestack-core' )
+	);
+
 	return array(
 		'order_id'       => $order_id,
 		'booking_id'     => $booking_id,
