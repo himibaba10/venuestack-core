@@ -3,9 +3,10 @@
  */
 import { store } from '@wordpress/interactivity';
 import { readJson } from './api';
+import { isStartAvailable, normalizeBusyRanges } from './availability';
 import { buildEndDateTime } from './datetime';
 import { errorMessage, formatMoney } from './format';
-import { initPickers } from './pickers';
+import { initPickers, refreshAvailability } from './pickers';
 
 /** @type {ReturnType<typeof setInterval>|null} */
 let countdownTimer = null;
@@ -67,6 +68,7 @@ const { state } = store( 'venuestack/booking-panel', {
 		setHours( event ) {
 			state.hours = Number( event.target.value ) || state.minHours;
 			state.error = '';
+			refreshAvailability( state );
 		},
 		setHeadcount( event ) {
 			let n = Number( event.target.value ) || 0;
@@ -116,6 +118,14 @@ const { state } = store( 'venuestack/booking-panel', {
 			}
 
 			const hours = Number( state.hours ) || Number( state.minHours );
+			const busy = normalizeBusyRanges( state.busyRanges );
+			if ( ! isStartAvailable( state.date, state.time, hours, busy ) ) {
+				state.error =
+					'That time overlaps an existing booking. Pick another slot.';
+				refreshAvailability( state );
+				return;
+			}
+
 			const start = `${ state.date } ${ state.time }:00`;
 			const end = buildEndDateTime( state.date, state.time, hours );
 

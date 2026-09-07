@@ -59,6 +59,10 @@ for ( $h = $min_hours; $h <= $min_hours + 8; $h++ ) {
 	$durations[] = $h;
 }
 
+$busy_ranges = function_exists( 'venuestack_core_get_space_busy_ranges_for_panel' )
+	? venuestack_core_get_space_busy_ranges_for_panel( $space_id, 120 )
+	: array();
+
 if ( function_exists( 'wp_interactivity_state' ) ) {
 	wp_interactivity_state(
 		'venuestack/booking-panel',
@@ -70,6 +74,7 @@ if ( function_exists( 'wp_interactivity_state' ) ) {
 			'minHours'    => $min_hours,
 			'maxCapacity' => $max_cap,
 			'packages'    => $packages,
+			'busyRanges'  => $busy_ranges,
 			'step'        => 'schedule',
 			'date'        => $today,
 			'time'        => '10:00',
