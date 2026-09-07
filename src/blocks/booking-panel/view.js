@@ -1,10 +1,71 @@
 /**
  * Single-space booking panel (hold → checkout) Interactivity store.
  */
-import { store } from '@wordpress/interactivity';
+import AirDatepicker from 'air-datepicker';
+import localeEn from 'air-datepicker/locale/en';
+import { getElement, store } from '@wordpress/interactivity';
+import 'air-datepicker/air-datepicker.css';
+import './view.css';
 
 /** @type {ReturnType<typeof setInterval>|null} */
 let countdownTimer = null;
+
+/**
+ * @param {string} dateStr Y-m-d
+ * @return {Date|null} Local calendar date, or null if invalid.
+ */
+function parseYmd( dateStr ) {
+	if ( ! dateStr || typeof dateStr !== 'string' ) {
+		return null;
+	}
+	const parts = dateStr.split( '-' ).map( Number );
+	if ( parts.length !== 3 || parts.some( ( n ) => ! Number.isFinite( n ) ) ) {
+		return null;
+	}
+	const [ y, mo, d ] = parts;
+	return new Date( y, mo - 1, d );
+}
+
+/**
+ * @param {Date} date
+ * @return {string} Y-m-d
+ */
+function formatYmd( date ) {
+	const pad = ( n ) => String( n ).padStart( 2, '0' );
+	return `${ date.getFullYear() }-${ pad( date.getMonth() + 1 ) }-${ pad(
+		date.getDate()
+	) }`;
+}
+
+/**
+ * @param {string} timeStr HH:MM
+ * @return {Date|null} Today with that local time, or null if invalid.
+ */
+function parseHm( timeStr ) {
+	if ( ! timeStr || typeof timeStr !== 'string' ) {
+		return null;
+	}
+	const parts = timeStr.split( ':' ).map( Number );
+	if ( parts.length < 2 || parts.some( ( n ) => ! Number.isFinite( n ) ) ) {
+		return null;
+	}
+	const [ h, mi ] = parts;
+	if ( h < 0 || h > 23 || mi < 0 || mi > 59 ) {
+		return null;
+	}
+	const date = new Date();
+	date.setHours( h, mi, 0, 0 );
+	return date;
+}
+
+/**
+ * @param {Date} date
+ * @return {string} HH:MM
+ */
+function formatHm( date ) {
+	const pad = ( n ) => String( n ).padStart( 2, '0' );
+	return `${ pad( date.getHours() ) }:${ pad( date.getMinutes() ) }`;
+}
 
 /**
  * @param {string} dateStr Y-m-d
@@ -55,6 +116,90 @@ function errorMessage( body ) {
 		return body.message;
 	}
 	return 'Something went wrong. Please try again.';
+}
+
+/**
+ * Attach Air Datepicker to the schedule date field.
+ *
+ * @param {HTMLElement} root Booking panel root.
+ */
+function initDatepicker( root ) {
+	const input = root.querySelector( '.venuestack-booking-panel__datepicker' );
+	if ( ! input || input.dataset.datepickerReady === '1' ) {
+		return;
+	}
+	input.dataset.datepickerReady = '1';
+
+	const selected = parseYmd( state.date );
+	const minDate = selected || new Date();
+	minDate.setHours( 0, 0, 0, 0 );
+
+	new AirDatepicker( input, {
+		locale: localeEn,
+		autoClose: true,
+		minDate,
+		selectedDates: selected ? [ selected ] : [],
+		dateFormat: 'MMMM dd, yyyy',
+		buttons: [ 'today' ],
+		onSelect( { date } ) {
+			const picked = Array.isArray( date ) ? date[ 0 ] : date;
+			if ( ! picked ) {
+				state.date = '';
+				state.error = '';
+				return;
+			}
+			state.date = formatYmd( picked );
+			state.error = '';
+		},
+	} );
+}
+
+/**
+ * Attach Air Datepicker time-only control to the start time field.
+ *
+ * @param {HTMLElement} root Booking panel root.
+ */
+function initTimepicker( root ) {
+	const input = root.querySelector( '.venuestack-booking-panel__timepicker' );
+	if ( ! input || input.dataset.timepickerReady === '1' ) {
+		return;
+	}
+	input.dataset.timepickerReady = '1';
+
+	const selected = parseHm( state.time ) || parseHm( '10:00' );
+
+	new AirDatepicker( input, {
+		locale: localeEn,
+		timepicker: true,
+		onlyTimepicker: true,
+		autoClose: false,
+		selectedDates: selected ? [ selected ] : [],
+		timeFormat: 'h:mm AA',
+		minutesStep: 15,
+		hoursStep: 1,
+		onSelect( { date } ) {
+			const picked = Array.isArray( date ) ? date[ 0 ] : date;
+			if ( ! picked ) {
+				state.time = '';
+				state.error = '';
+				return;
+			}
+			state.time = formatHm( picked );
+			state.error = '';
+		},
+	} );
+}
+
+/**
+ * Initialize date + time pickers on the panel.
+ */
+function initPickers() {
+	const { ref } = getElement();
+	if ( ! ref ) {
+		return;
+	}
+	initDatepicker( ref );
+	initTimepicker( ref );
 }
 
 const { state } = store( 'venuestack/booking-panel', {
@@ -111,14 +256,6 @@ const { state } = store( 'venuestack/booking-panel', {
 		},
 	},
 	actions: {
-		setDate( event ) {
-			state.date = event.target.value;
-			state.error = '';
-		},
-		setTime( event ) {
-			state.time = event.target.value;
-			state.error = '';
-		},
 		setHours( event ) {
 			state.hours = Number( event.target.value ) || state.minHours;
 			state.error = '';
@@ -284,6 +421,7 @@ const { state } = store( 'venuestack/booking-panel', {
 	callbacks: {
 		init() {
 			state.error = '';
+			initPickers();
 		},
 	},
 } );

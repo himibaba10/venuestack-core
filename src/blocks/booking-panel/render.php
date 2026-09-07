@@ -112,23 +112,26 @@ $wrapper = get_block_wrapper_attributes(
 			<label class="venuestack-booking-panel__field">
 				<span class="is-style-label"><?php echo esc_html__( 'Date', 'venuestack-core' ); ?></span>
 				<input
-					type="date"
-					class="venuestack-booking-panel__input"
-					min="<?php echo esc_attr( $today ); ?>"
+					type="text"
+					class="venuestack-booking-panel__input venuestack-booking-panel__datepicker"
+					readonly
 					required
-					data-wp-bind--value="state.date"
-					data-wp-on--change="actions.setDate"
+					autocomplete="off"
+					placeholder="<?php echo esc_attr__( 'Select a date', 'venuestack-core' ); ?>"
+					aria-label="<?php echo esc_attr__( 'Booking date', 'venuestack-core' ); ?>"
 				/>
 			</label>
 
 			<label class="venuestack-booking-panel__field">
 				<span class="is-style-label"><?php echo esc_html__( 'Start time', 'venuestack-core' ); ?></span>
 				<input
-					type="time"
-					class="venuestack-booking-panel__input"
+					type="text"
+					class="venuestack-booking-panel__input venuestack-booking-panel__timepicker"
+					readonly
 					required
-					data-wp-bind--value="state.time"
-					data-wp-on--change="actions.setTime"
+					autocomplete="off"
+					placeholder="<?php echo esc_attr__( 'Select a time', 'venuestack-core' ); ?>"
+					aria-label="<?php echo esc_attr__( 'Booking start time', 'venuestack-core' ); ?>"
 				/>
 			</label>
 

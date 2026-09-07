@@ -36,6 +36,7 @@
 		"@fullcalendar/daygrid": "6.1.21",
 		"@fullcalendar/list": "6.1.21",
 		"@fullcalendar/timegrid": "6.1.21",
+		"air-datepicker": "^3.6.0",
 		"lucide-react": "^1.41.0"
 	}
 }

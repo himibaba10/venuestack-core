@@ -17,5 +17,6 @@
 	"textdomain": "venuestack-core",
 	"editorScript": "file:./index.js",
 	"viewScriptModule": "file:./view.js",
+	"viewStyle": "file:./view.css",
 	"render": "file:./render.php"
 }

@@ -1,0 +1,64 @@
+/**
+ * Air Datepicker — VenueStack token skin for the booking panel.
+ *
+ * Calendar UI mounts on document.body, so tokens live on .air-datepicker
+ * (not only under .venuestack-booking-panel).
+ */
+
+.air-datepicker {
+	--adp-font-family: var(--wp--preset--font-family--work-sans), sans-serif;
+	--adp-font-size: 0.875rem;
+	--adp-width: 280px;
+	--adp-z-index: 220;
+	--adp-padding: 8px;
+	--adp-border-radius: 0;
+	--adp-cell-border-radius: 0;
+	--adp-background-color: var(--wp--preset--color--card, #f8f4ed);
+	--adp-background-color-hover: color-mix(in srgb, var(--wp--preset--color--brass, #a6763d) 14%, var(--wp--preset--color--plaster, #f2ece3));
+	--adp-background-color-active: color-mix(in srgb, var(--wp--preset--color--brass, #a6763d) 22%, var(--wp--preset--color--plaster, #f2ece3));
+	--adp-color: var(--wp--preset--color--ink, #211d1b);
+	--adp-color-secondary: var(--wp--preset--color--muted, #6b635a);
+	--adp-accent-color: var(--wp--preset--color--brass, #a6763d);
+	--adp-color-current-date: var(--wp--preset--color--brass, #a6763d);
+	--adp-color-other-month: color-mix(in srgb, var(--wp--preset--color--ink, #211d1b) 28%, transparent);
+	--adp-color-disabled: color-mix(in srgb, var(--wp--preset--color--ink, #211d1b) 35%, transparent);
+	--adp-border-color: var(--wp--preset--color--rule, #d9d0c3);
+	--adp-border-color-inner: var(--wp--preset--color--rule, #d9d0c3);
+	--adp-border-color-inline: var(--wp--preset--color--rule, #d9d0c3);
+	--adp-nav-arrow-color: var(--wp--preset--color--ink, #211d1b);
+	--adp-day-name-color: var(--wp--preset--color--brass, #a6763d);
+	--adp-day-name-color-hover: var(--wp--preset--color--evergreen, #2f3b34);
+	--adp-cell-background-color-selected: var(--wp--preset--color--evergreen, #2f3b34);
+	--adp-cell-background-color-selected-hover: var(--wp--preset--color--brass, #a6763d);
+	--adp-btn-color: var(--wp--preset--color--brass, #a6763d);
+	--adp-btn-color-hover: var(--wp--preset--color--ink, #211d1b);
+	--adp-btn-border-radius: 0;
+	--adp-overlay-z-index: 210;
+	box-shadow:
+		0 12px 28px
+		color-mix(in srgb, var(--wp--preset--color--ink, #211d1b) 16%, transparent);
+}
+
+.venuestack-booking-panel__datepicker,
+.venuestack-booking-panel__timepicker {
+	cursor: pointer;
+}
+
+.air-datepicker--pointer::after {
+	background: var(--adp-background-color);
+	border-color: var(--adp-border-color);
+}
+
+.air-datepicker-nav--title {
+	font-family: var(--wp--preset--font-family--playfair-display), serif;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+
+.air-datepicker-cell.-selected- {
+	color: var(--wp--preset--color--plaster, #f2ece3);
+}
+
+.air-datepicker.-only-timepicker- {
+	--adp-width: 260px;
+}
