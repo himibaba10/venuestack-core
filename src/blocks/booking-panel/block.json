@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "venuestack/booking-panel",
+	"title": "Booking Panel",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Interactivity booking panel for a single venue space (hold → checkout).",
+	"usesContext": [ "postId", "postType" ],
+	"supports": {
+		"inserter": false,
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"interactivity": true
+	},
+	"textdomain": "venuestack-core",
+	"editorScript": "file:./index.js",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}

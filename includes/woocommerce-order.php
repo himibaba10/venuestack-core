@@ -274,5 +274,6 @@ function venuestack_core_create_order_for_booking_locked(
 		'currency'       => $order->get_currency(),
 		'payment_method' => 'cod',
 		'pricing'        => $pricing,
+		'received_url'   => $order->get_checkout_order_received_url(),
 	);
 }

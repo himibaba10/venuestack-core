@@ -13,12 +13,7 @@ function getPostId( li ) {
 }
 
 function getCardContext( li ) {
-	const card = li.querySelector( '.venuestack-home-space-card' );
-	if ( ! card ) {
-		return { types: [], amenities: [] };
-	}
-
-	const raw = card.getAttribute( 'data-wp-context' );
+	const raw = li.getAttribute( 'data-wp-context' );
 	if ( ! raw ) {
 		return { types: [], amenities: [] };
 	}
