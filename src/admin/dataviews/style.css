@@ -1,0 +1,29 @@
+/**
+ * VenueStack Data Views admin chrome.
+ */
+
+.venuestack-dataviews-wrap {
+	max-width: 100%;
+}
+
+.venuestack-dataviews-root {
+	margin-top: 1rem;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 0;
+	min-height: 320px;
+}
+
+.venuestack-dataviews-root .dataviews-wrapper {
+	padding: 0;
+}
+
+.venuestack-dataviews-root a {
+	text-decoration: none;
+}
+
+.venuestack-dataviews-root a:hover,
+.venuestack-dataviews-root a:focus {
+	text-decoration: underline;
+}
