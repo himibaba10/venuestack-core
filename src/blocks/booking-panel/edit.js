@@ -3,10 +3,10 @@
  */
 import { useBlockProps } from '@wordpress/block-editor';
 import { Disabled } from '@wordpress/components';
-import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import ServerSideRender from '@wordpress/server-side-render';
 import metadata from './block.json';
+import { usePreviewSpaceId } from './hooks/use-preview-space-id';
 
 /**
  * @param {Object} props
@@ -17,30 +17,7 @@ export default function Edit( { context } ) {
 	const blockProps = useBlockProps( {
 		className: 'venuestack-booking-panel-editor',
 	} );
-
-	const postId = useSelect(
-		( select ) => {
-			const fromContext = context?.postId ? Number( context.postId ) : 0;
-			if ( fromContext > 0 ) {
-				return fromContext;
-			}
-
-			const editor = select( 'core/editor' );
-			const currentId = editor?.getCurrentPostId?.();
-			if ( currentId ) {
-				return Number( currentId );
-			}
-
-			const records = select( 'core' ).getEntityRecords(
-				'postType',
-				'venue_space',
-				{ per_page: 1, status: 'publish' }
-			);
-			return records?.[ 0 ]?.id ? Number( records[ 0 ].id ) : 0;
-		},
-		[ context?.postId ]
-	);
-
+	const postId = usePreviewSpaceId( context?.postId );
 	const urlQueryArgs = postId > 0 ? { post_id: postId } : {};
 
 	return (
