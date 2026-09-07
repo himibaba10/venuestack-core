@@ -62,3 +62,47 @@
 .air-datepicker.-only-timepicker- {
 	--adp-width: 260px;
 }
+
+/* Login gate — guests see the form muted until they authenticate */
+.venuestack-booking-panel__login-gate {
+	margin: 0 0 var(--wp--preset--spacing--30, 1rem);
+	padding: var(--wp--preset--spacing--30, 1rem);
+	border: 1px solid var(--wp--preset--color--rule, #d9d0c3);
+	background: color-mix(in srgb, var(--wp--preset--color--brass, #a6763d) 10%, var(--wp--preset--color--plaster, #f2ece3));
+}
+
+.venuestack-booking-panel__login-gate-text {
+	margin: 0 0 0.75rem;
+	color: var(--wp--preset--color--ink, #211d1b);
+}
+
+.venuestack-booking-panel__login-gate-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+	margin: 0;
+}
+
+.venuestack-booking-panel__login-gate .venuestack-booking-panel__button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	text-decoration: none;
+}
+
+.venuestack-booking-panel.is-locked .venuestack-booking-panel__step {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.venuestack-booking-panel.is-locked .venuestack-booking-panel__datepicker,
+.venuestack-booking-panel.is-locked .venuestack-booking-panel__timepicker {
+	cursor: not-allowed;
+}
+
+.venuestack-booking-panel__input:disabled,
+.venuestack-booking-panel__button:disabled {
+	cursor: not-allowed;
+	opacity: 0.7;
+}

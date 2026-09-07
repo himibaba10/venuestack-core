@@ -61,6 +61,14 @@ add_action( 'rest_api_init', 'venuestack_core_register_checkout_routes' );
  * @return WP_REST_Response|WP_Error
  */
 function venuestack_core_rest_checkout( WP_REST_Request $request ) {
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error(
+			'venuestack_login_required',
+			__( 'Log in to confirm this booking.', 'venuestack-core' ),
+			array( 'status' => 401 )
+		);
+	}
+
 	$billing_raw = $request['billing'];
 	$billing     = array();
 

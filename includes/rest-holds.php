@@ -56,6 +56,14 @@ add_action( 'rest_api_init', 'venuestack_core_register_hold_routes' );
  * @return WP_REST_Response|WP_Error
  */
 function venuestack_core_rest_create_hold( WP_REST_Request $request ) {
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error(
+			'venuestack_login_required',
+			__( 'Log in to hold this space.', 'venuestack-core' ),
+			array( 'status' => 401 )
+		);
+	}
+
 	$rate = venuestack_core_rate_limit_holds();
 	if ( is_wp_error( $rate ) ) {
 		return $rate;

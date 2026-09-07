@@ -31,6 +31,18 @@ const { state } = store( 'venuestack/booking-panel', {
 		get hideIdle() {
 			return state.busy;
 		},
+		get isLoggedOut() {
+			return ! state.isLoggedIn;
+		},
+		get hideLoginGate() {
+			return Boolean( state.isLoggedIn );
+		},
+		get isFormDisabled() {
+			return ! state.isLoggedIn;
+		},
+		get isHoldDisabled() {
+			return ! state.isLoggedIn || Boolean( state.busy );
+		},
 		get isSchedule() {
 			return state.step === 'schedule';
 		},
@@ -66,11 +78,17 @@ const { state } = store( 'venuestack/booking-panel', {
 	},
 	actions: {
 		setHours( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.hours = Number( event.target.value ) || state.minHours;
 			state.error = '';
 			refreshAvailability( state );
 		},
 		setHeadcount( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			let n = Number( event.target.value ) || 0;
 			const max = Number( state.maxCapacity ) || 0;
 			if ( max > 0 && n > max ) {
@@ -83,22 +101,40 @@ const { state } = store( 'venuestack/booking-panel', {
 			state.error = '';
 		},
 		setPackage( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.packageId = Number( event.target.value ) || 0;
 			state.error = '';
 		},
 		setFirstName( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.firstName = event.target.value;
 		},
 		setLastName( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.lastName = event.target.value;
 		},
 		setEmail( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.email = event.target.value;
 		},
 		setPhone( event ) {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			state.phone = event.target.value;
 		},
 		backToSchedule() {
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			if ( countdownTimer ) {
 				clearInterval( countdownTimer );
 				countdownTimer = null;
@@ -112,6 +148,10 @@ const { state } = store( 'venuestack/booking-panel', {
 		},
 		*createHold() {
 			state.error = '';
+			if ( ! state.isLoggedIn ) {
+				state.error = 'Log in to hold this space.';
+				return;
+			}
 			if ( ! state.date || ! state.time ) {
 				state.error = 'Choose a date and start time.';
 				return;
@@ -184,6 +224,10 @@ const { state } = store( 'venuestack/booking-panel', {
 		},
 		*checkout() {
 			state.error = '';
+			if ( ! state.isLoggedIn ) {
+				state.error = 'Log in to confirm this booking.';
+				return;
+			}
 			if ( ! state.firstName || ! state.lastName || ! state.email ) {
 				state.error = 'Enter your name and email to confirm.';
 				return;
@@ -239,6 +283,9 @@ const { state } = store( 'venuestack/booking-panel', {
 	callbacks: {
 		init() {
 			state.error = '';
+			if ( ! state.isLoggedIn ) {
+				return;
+			}
 			initPickers( state );
 		},
 	},

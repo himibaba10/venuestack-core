@@ -33,7 +33,11 @@ $min_hours   = max( 1, $min_hours );
 $timezone = wp_timezone_string();
 $today    = wp_date( 'Y-m-d', null, wp_timezone() );
 
-$packages = array();
+$is_logged_in = is_user_logged_in();
+$login_url    = wp_login_url( get_permalink( $space_id ) ?: home_url( '/' ) );
+$register_url = get_option( 'users_can_register' ) ? wp_registration_url() : '';
+
+$packages      = array();
 $package_posts = get_posts(
 	array(
 		'post_type'              => 'event_package',
@@ -63,6 +67,11 @@ $busy_ranges = function_exists( 'venuestack_core_get_space_busy_ranges_for_panel
 	? venuestack_core_get_space_busy_ranges_for_panel( $space_id, 120 )
 	: array();
 
+$user       = $is_logged_in ? wp_get_current_user() : null;
+$first_name = $user instanceof WP_User ? (string) $user->first_name : '';
+$last_name  = $user instanceof WP_User ? (string) $user->last_name : '';
+$email      = $user instanceof WP_User ? (string) $user->user_email : '';
+
 if ( function_exists( 'wp_interactivity_state' ) ) {
 	wp_interactivity_state(
 		'venuestack/booking-panel',
@@ -75,6 +84,12 @@ if ( function_exists( 'wp_interactivity_state' ) ) {
 			'maxCapacity' => $max_cap,
 			'packages'    => $packages,
 			'busyRanges'  => $busy_ranges,
+			'isLoggedIn'  => $is_logged_in,
+			'isLoggedOut' => ! $is_logged_in,
+			'isFormDisabled' => ! $is_logged_in,
+			'isHoldDisabled' => ! $is_logged_in,
+			'loginUrl'    => esc_url_raw( $login_url ),
+			'registerUrl' => $register_url ? esc_url_raw( $register_url ) : '',
 			'step'        => 'schedule',
 			'date'        => $today,
 			'time'        => '10:00',
@@ -87,23 +102,52 @@ if ( function_exists( 'wp_interactivity_state' ) ) {
 			'holdToken'   => '',
 			'expiresAt'   => 0,
 			'secondsLeft' => 0,
-			'firstName'   => '',
-			'lastName'    => '',
-			'email'       => '',
+			'firstName'   => $first_name,
+			'lastName'    => $last_name,
+			'email'       => $email,
 			'phone'       => '',
 		)
 	);
 }
 
+$wrapper_classes = 'venuestack-booking-panel';
+if ( ! $is_logged_in ) {
+	$wrapper_classes .= ' is-locked';
+}
+
 $wrapper = get_block_wrapper_attributes(
 	array(
-		'class'               => 'venuestack-booking-panel',
+		'class'               => $wrapper_classes,
 		'data-wp-interactive' => 'venuestack/booking-panel',
 		'data-wp-init'        => 'callbacks.init',
+		'data-wp-class--is-locked' => 'state.isLoggedOut',
 	)
 );
+
+$disabled_attr = $is_logged_in ? '' : ' disabled';
 ?>
 <div <?php echo $wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+	<div
+		class="venuestack-booking-panel__login-gate"
+		data-wp-bind--hidden="state.hideLoginGate"
+		<?php echo $is_logged_in ? ' hidden' : ''; ?>
+		role="status"
+	>
+		<p class="venuestack-booking-panel__login-gate-text is-style-body">
+			<?php echo esc_html__( 'Log in to hold a date and confirm your booking.', 'venuestack-core' ); ?>
+		</p>
+		<p class="venuestack-booking-panel__login-gate-actions">
+			<a class="venuestack-booking-panel__button" href="<?php echo esc_url( $login_url ); ?>">
+				<?php echo esc_html__( 'Log in', 'venuestack-core' ); ?>
+			</a>
+			<?php if ( $register_url ) : ?>
+				<a class="venuestack-booking-panel__link" href="<?php echo esc_url( $register_url ); ?>">
+					<?php echo esc_html__( 'Create account', 'venuestack-core' ); ?>
+				</a>
+			<?php endif; ?>
+		</p>
+	</div>
+
 	<p
 		class="venuestack-booking-panel__error is-style-body"
 		data-wp-bind--hidden="state.hideError"
@@ -124,6 +168,8 @@ $wrapper = get_block_wrapper_attributes(
 					autocomplete="off"
 					placeholder="<?php echo esc_attr__( 'Select a date', 'venuestack-core' ); ?>"
 					aria-label="<?php echo esc_attr__( 'Booking date', 'venuestack-core' ); ?>"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 
@@ -137,6 +183,8 @@ $wrapper = get_block_wrapper_attributes(
 					autocomplete="off"
 					placeholder="<?php echo esc_attr__( 'Select a time', 'venuestack-core' ); ?>"
 					aria-label="<?php echo esc_attr__( 'Booking start time', 'venuestack-core' ); ?>"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 
@@ -146,6 +194,8 @@ $wrapper = get_block_wrapper_attributes(
 					class="venuestack-booking-panel__input"
 					data-wp-on--change="actions.setHours"
 					data-wp-bind--value="state.hours"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				>
 					<?php foreach ( $durations as $hours ) : ?>
 						<option value="<?php echo esc_attr( (string) $hours ); ?>" <?php selected( $hours, $min_hours ); ?>>
@@ -174,6 +224,8 @@ $wrapper = get_block_wrapper_attributes(
 					<?php endif; ?>
 					data-wp-bind--value="state.headcount"
 					data-wp-on--change="actions.setHeadcount"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 
@@ -183,6 +235,8 @@ $wrapper = get_block_wrapper_attributes(
 					class="venuestack-booking-panel__input"
 					data-wp-on--change="actions.setPackage"
 					data-wp-bind--value="state.packageId"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				>
 					<option value="0"><?php echo esc_html__( 'Space only', 'venuestack-core' ); ?></option>
 					<?php foreach ( $packages as $package ) : ?>
@@ -217,7 +271,8 @@ $wrapper = get_block_wrapper_attributes(
 			type="button"
 			class="venuestack-booking-panel__button"
 			data-wp-on--click="actions.createHold"
-			data-wp-bind--disabled="state.busy"
+			data-wp-bind--disabled="state.isHoldDisabled"
+			<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		>
 			<span data-wp-bind--hidden="state.hideIdle"><?php echo esc_html__( 'Hold this slot', 'venuestack-core' ); ?></span>
 			<span data-wp-bind--hidden="state.hideBusy" hidden><?php echo esc_html__( 'Holding…', 'venuestack-core' ); ?></span>
@@ -235,6 +290,7 @@ $wrapper = get_block_wrapper_attributes(
 				type="button"
 				class="venuestack-booking-panel__link"
 				data-wp-on--click="actions.backToSchedule"
+				data-wp-bind--disabled="state.isFormDisabled"
 			><?php echo esc_html__( 'Change time', 'venuestack-core' ); ?></button>
 		</div>
 
@@ -248,6 +304,8 @@ $wrapper = get_block_wrapper_attributes(
 					required
 					data-wp-bind--value="state.firstName"
 					data-wp-on--input="actions.setFirstName"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 			<label class="venuestack-booking-panel__field">
@@ -259,6 +317,8 @@ $wrapper = get_block_wrapper_attributes(
 					required
 					data-wp-bind--value="state.lastName"
 					data-wp-on--input="actions.setLastName"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 			<label class="venuestack-booking-panel__field">
@@ -270,6 +330,8 @@ $wrapper = get_block_wrapper_attributes(
 					required
 					data-wp-bind--value="state.email"
 					data-wp-on--input="actions.setEmail"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 			<label class="venuestack-booking-panel__field">
@@ -280,6 +342,8 @@ $wrapper = get_block_wrapper_attributes(
 					autocomplete="tel"
 					data-wp-bind--value="state.phone"
 					data-wp-on--input="actions.setPhone"
+					data-wp-bind--disabled="state.isFormDisabled"
+					<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				/>
 			</label>
 		</div>
@@ -295,7 +359,8 @@ $wrapper = get_block_wrapper_attributes(
 			type="button"
 			class="venuestack-booking-panel__button"
 			data-wp-on--click="actions.checkout"
-			data-wp-bind--disabled="state.busy"
+			data-wp-bind--disabled="state.isHoldDisabled"
+			<?php echo $disabled_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		>
 			<span data-wp-bind--hidden="state.hideIdle"><?php echo esc_html__( 'Confirm booking', 'venuestack-core' ); ?></span>
 			<span data-wp-bind--hidden="state.hideBusy" hidden><?php echo esc_html__( 'Creating order…', 'venuestack-core' ); ?></span>
