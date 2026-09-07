@@ -171,7 +171,7 @@ function venuestack_core_register_post_types(): void {
 			'rest_base'     => 'event-packages',
 			'menu_position' => 21,
 			'menu_icon'     => 'dashicons-carrot',
-			'supports'      => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
+			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'custom-fields' ),
 			'has_archive'   => true,
 			'rewrite'       => array(
 				'slug'       => 'packages',
