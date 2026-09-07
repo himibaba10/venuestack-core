@@ -67,7 +67,7 @@ function venuestack_core_register_post_types(): void
 			'rest_base' => 'venue-bookings',
 			'menu_position' => 22,
 			'menu_icon' => 'dashicons-calendar-alt',
-			'supports' => array('title', 'author'),
+			'supports' => array( 'title', 'author', 'custom-fields' ),
 			'rewrite' => false,
 		)
 	);
