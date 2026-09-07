@@ -121,9 +121,13 @@ function venuestack_core_render_dataviews_page(): void
 	?>
 	<div class="wrap venuestack-dataviews-wrap">
 		<h1 class="wp-heading-inline"><?php echo esc_html($title); ?></h1>
-		<?php if ('spaces' === $screen): ?>
-			<a href="<?php echo esc_url(admin_url('post-new.php?post_type=venue_space')); ?>" class="page-title-action">
-				<?php echo esc_html__('Add Space', 'venuestack-core'); ?>
+		<?php if ( 'spaces' === $screen ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=venue_space' ) ); ?>" class="page-title-action">
+				<?php echo esc_html__( 'Add Space', 'venuestack-core' ); ?>
+			</a>
+		<?php else : ?>
+			<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=venue_booking' ) ); ?>" class="page-title-action">
+				<?php echo esc_html__( 'Add Booking', 'venuestack-core' ); ?>
 			</a>
 		<?php endif; ?>
 		<hr class="wp-header-end" />

@@ -86,7 +86,6 @@ export default function BookingsApp() {
 		sort: { field: 'start_datetime', direction: 'desc' },
 		titleField: 'title',
 		fields: [
-			'title',
 			'space_id',
 			'start_datetime',
 			'end_datetime',

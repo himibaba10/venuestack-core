@@ -54,7 +54,6 @@ export default function SpacesApp() {
 		sort: { field: 'title', direction: 'asc' },
 		titleField: 'title',
 		fields: [
-			'title',
 			'max_capacity',
 			'square_footage',
 			'hourly_rate',
@@ -178,6 +177,7 @@ export default function SpacesApp() {
 				id: 'view',
 				label: __( 'View', 'venuestack-core' ),
 				icon: external,
+				isEligible: ( item ) => Boolean( item?.link ),
 				callback: ( items ) => {
 					const item = items?.[ 0 ];
 					const url = item?.link;
