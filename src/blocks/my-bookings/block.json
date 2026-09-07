@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "venuestack/my-bookings",
+	"title": "My Bookings",
+	"category": "widgets",
+	"icon": "list-view",
+	"description": "Logged-in customer booking history (view only).",
+	"supports": {
+		"inserter": true,
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"align": ["wide", "full"]
+	},
+	"textdomain": "venuestack-core",
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php"
+}
